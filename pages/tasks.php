@@ -537,7 +537,9 @@ if ($res) {
         document.getElementById('modalField').textContent = data.field_name || 'No field';
         document.getElementById('modalCrop').textContent = data.crop_name || 'N/A';
         document.getElementById('modalNotes').textContent = data.notes || 'No notes';
-        document.getElementById('modalDetails').textContent = data.details || 'No additional details';
+        
+        // ✅ Use formatted details with HTML
+        document.getElementById('modalDetails').innerHTML = data.details_formatted || 'No additional details';
 
         new bootstrap.Modal(document.getElementById('taskDetailModal')).show();
       })

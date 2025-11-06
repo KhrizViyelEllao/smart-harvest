@@ -66,12 +66,7 @@
     </li>
 </ul>
 
-    <div class="sidebar-footer">
-        <button class="btn btn-dark-mode" onclick="toggleDarkMode()">
-            <i class="fas fa-moon"></i>
-            <span>Dark</span>
-        </button>
-    </div>
+
 </nav>
 
 <!-- Overlay for Mobile (Auto-hides sidebar when clicking outside) -->

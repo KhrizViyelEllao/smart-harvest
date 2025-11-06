@@ -30,4 +30,7 @@ Array
             [field_id] => 16
         )
 
+    [start_date] => 2025-11-07
+    [start_time] => 
+    [notes] => 
 )
