@@ -13,6 +13,16 @@ $field_id = intval($input['field_id']);
 
 try {
   // Select crops that belong to the given field
+  $fieldStmt = $conn->prepare("
+    SELECT field_id, name, area, perimeter, type, notes
+    FROM fields
+    WHERE field_id = ?
+  ");
+  $fieldStmt->bind_param("i", $field_id);
+  $fieldStmt->execute();
+  $fieldInfo = $fieldStmt->get_result()->fetch_assoc();
+  $fieldStmt->close();
+
   $stmt = $conn->prepare("
     SELECT 
       c.crop_id,
@@ -38,7 +48,11 @@ try {
   if (empty($crops)) {
     echo json_encode(["success" => false, "message" => "No crops found for this field.", "data" => []]);
   } else {
-    echo json_encode(["success" => true, "data" => $crops]);
+    echo json_encode([
+      "success" => true,
+      "data"    => $crops,
+      "field"   => $fieldInfo
+    ]);
   }
 
 } catch (Exception $e) {

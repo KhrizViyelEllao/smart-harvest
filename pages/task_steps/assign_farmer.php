@@ -69,6 +69,8 @@ $result = $conn->query($query);
           taskDetails = JSON.parse(localStorage.getItem('fertilizingTaskDetails') || '{}');
         } else if (taskType.includes('pest_control')) {
           taskDetails = JSON.parse(localStorage.getItem('pestcontrolTaskDetails') || '{}');
+        } else if (taskType.includes('planting')) {
+          taskDetails = JSON.parse(localStorage.getItem('plantingTaskDetails') || '{}');
         }
 
 
@@ -94,7 +96,7 @@ $result = $conn->query($query);
         const data = await res.json();
         if (data.success) {
           alert('✅ Farmers successfully assigned!');
-          window.location.href = '../../layout.php?page=tasks';
+          window.location.href = '/Agrilink/layout.php?page=tasks'; // use routed Tasks page
         } else {
           alert('❌ Failed to save assignment.');
         }

@@ -566,6 +566,11 @@ if ($res) {
 
   function updateTaskStatus(status) {
     const base = window.location.origin + '/Agrilink';
+
+    if (status === 'deleted') {
+      return deleteTask(currentTaskId);
+    }
+
     fetch(base + '/backend/api/tasks/update_field_task_status.php', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -586,9 +591,42 @@ if ($res) {
     });
   }
 
+  function deleteTask(fieldTaskId) {
+    const base = window.location.origin + '/Agrilink';
+    return fetch(base + '/backend/api/tasks/delete_field_task.php', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ field_task_id: fieldTaskId })
+    })
+    .then(r => r.json())
+    .then(data => {
+      if (data.success) {
+        alert('Task deleted successfully');
+        location.reload();
+      } else {
+        alert('Error: ' + (data.message || 'Failed to delete task'));
+      }
+    })
+    .catch(err => {
+      console.error('Error deleting task:', err);
+      alert('Failed to delete task');
+    });
+  }
+
   document.addEventListener('DOMContentLoaded', function() {
     ensureCalendarInitialized();
   });
+
+  // Call this when a field is selected in Step 2
+  function onFieldChosen(field) {
+    // field: { field_id, name }
+    const selected = [{ id: String(field.field_id), name: field.name || '' }];
+    localStorage.setItem('selectedFields', JSON.stringify(selected));
+  }
 </script>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+
+
+

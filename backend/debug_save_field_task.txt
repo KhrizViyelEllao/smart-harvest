@@ -2,32 +2,29 @@ Array
 (
     [farmer_ids] => Array
         (
-            [0] => 1
+            [0] => 3
         )
 
     [fields] => Array
         (
-            [0] => 16
+            [0] => 15
         )
 
-    [task] => {"id":"7","name":"Fertilizer Application"}
-    [task_type] => fertilizing
+    [task] => {"id":"3","name":"Harvest"}
+    [task_type] => harvest
     [details] => Array
         (
-            [fertilizerType] => sd
-            [applicationMethod] => broadcast
-            [fertilizerAmount] => 34
-            [fertilizerUnit] => kg
-            [fertilizerSupplier] => dore
-            [applicationFrequency] => 4
-            [fertilizerNotes] => 4
-            [fertilizerInstructions] => r
-            [crops] => Array
-                (
-                    [0] => 2
-                )
-
-            [field_id] => 16
+            [crop_id] => 18
+            [field_id] => 15
+            [harvest_date] => 2025-11-13
+            [predicted_yield_kg] => 100
+            [actual_yield_kg] => 
+            [quality] => high
+            [notes] => otso otso
+            [harvest_id] => 14
+            [fieldId] => 15
+            [fieldName] => aloe vera
+            [cropName] => Aloe Vera
         )
 
 )

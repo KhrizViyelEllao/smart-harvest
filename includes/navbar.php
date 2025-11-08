@@ -45,7 +45,7 @@
         <a href="layout.php?page=harvest" 
            class="nav-link <?php echo ($_GET['page'] ?? '') == 'harvest' ? 'active' : ''; ?>">
             <i class="fas fa-calendar-alt"></i>
-            <span>Harvest Schedule</span>
+            <span>Harvest</span>
         </a>
     </li>
 

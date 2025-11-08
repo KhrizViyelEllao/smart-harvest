@@ -1,11 +1,31 @@
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <style>
 .fixed-crop-img {
-  height: 180px;
+  height: 110px;           /* was 180px */
   object-fit: cover;
   width: 100%;
   border-top-left-radius: 0.5rem;
   border-top-right-radius: 0.5rem;
+}
+
+/* Compact cards */
+.compact-cards .card {
+  border-radius: 0.5rem;
+}
+
+.compact-cards .card-body {
+  padding: 0.45rem 0.5rem;
+}
+
+.compact-cards h6 {
+  font-size: 0.8rem;
+  margin-bottom: 0.15rem;
+}
+
+.compact-cards .badge,
+.compact-cards .btn {
+  font-size: 0.65rem;
+  padding: 0.2rem 0.4rem;
 }
 </style>
 
@@ -25,11 +45,11 @@
 
   <!-- On your farm -->
   <h5>On your farm</h5>
-<div id="onFarmCrops" class="row row-cols-2 row-cols-md-4 g-3 mb-4"></div>
+<div id="onFarmCrops" class="row compact-cards row-cols-3 row-cols-md-6 g-2 mb-3"></div>
 
   <!-- Add to your farm -->
   <h5>Add to your farm</h5>
-  <div id="notOnFarmCrops" class="row row-cols-2 row-cols-md-4 g-3"></div>
+  <div id="notOnFarmCrops" class="row compact-cards row-cols-3 row-cols-md-6 g-2"></div>
 </div>
 
 <!-- 🟢 Add Crop Modal -->
@@ -138,10 +158,10 @@ async function cropManagementInit() {
     const cropRes = await fetch("backend/api/crops/getCrops.php");
     const cropData = await cropRes.json();
 
-    allCrops = [...(cropData.onFarm || []), ...(cropData.notOnFarm || [])]; // combine both lists
+    allCrops = [...(cropData.onFarm || []), ...(cropData.notOnFarm || [])];
 
     renderCrops(cropData.onFarm, "onFarmCrops", true);
-    renderCrops(cropData.notOnFarm, "notOnFarmCrops", false);
+    renderCrops(allCrops, "notOnFarmCrops", false);
 
     await loadFields();
 
@@ -177,6 +197,7 @@ function renderCrops(list, containerId, onFarm) {
     col.className = "col crop-card";
     col.dataset.name = crop.crop_name;
     col.dataset.id = crop.crop_id;
+    col.dataset.duration = crop.duration || 0;
 
     col.innerHTML = `
       <div class="card shadow-sm h-100">
@@ -241,13 +262,16 @@ document.addEventListener("click", (e) => {
     const card = e.target.closest(".crop-card");
     const cropId = card.dataset.id;
 
-    const selectedCrop = allCrops.find(c => c.crop_id === cropId);
-    document.getElementById("selectedCropId").value = cropId;
-    document.getElementById("selectedCropDuration").value = selectedCrop?.duration || 0;
+    const selectedCrop = allCrops.find(c => String(c.crop_id) === String(cropId));
+    const duration = selectedCrop?.duration ?? card.dataset.duration ?? 0;
 
-    // Reset date fields
-    document.getElementById("planting_date").value = "";
-    document.getElementById("expected_harvest").value = "";
+    document.getElementById("selectedCropId").value = cropId;
+    document.getElementById("selectedCropDuration").value = duration;
+
+    const plantingInput = document.getElementById("planting_date");
+    const harvestInput = document.getElementById("expected_harvest");
+    if (plantingInput) plantingInput.value = "";
+    if (harvestInput) harvestInput.value = "";
 
     const modal = new bootstrap.Modal(document.getElementById("addCropModal"));
     modal.show();
@@ -258,19 +282,31 @@ document.addEventListener("click", (e) => {
 
 // 🔹 Auto-calculate Expected Harvest Date
 function handlePlantingDateChange() {
-  const plantingDate = document.getElementById("planting_date").value;
-  const duration = parseInt(document.getElementById("selectedCropDuration").value) || 0;
+  const plantingInput = document.getElementById("planting_date");
+  const harvestInput = document.getElementById("expected_harvest");
+  const durationValue = parseInt(document.getElementById("selectedCropDuration").value, 10) || 0;
 
-  if (!plantingDate || duration <= 0) return;
+  if (!plantingInput || !harvestInput) return;
+
+  const plantingDate = plantingInput.value;
+  if (!plantingDate || durationValue <= 0) {
+    harvestInput.value = "";
+    return;
+  }
 
   const plant = new Date(plantingDate);
-  plant.setDate(plant.getDate() + duration);
+  if (Number.isNaN(plant.getTime())) {
+    harvestInput.value = "";
+    return;
+  }
+
+  plant.setDate(plant.getDate() + durationValue);
 
   const yyyy = plant.getFullYear();
   const mm = String(plant.getMonth() + 1).padStart(2, "0");
   const dd = String(plant.getDate()).padStart(2, "0");
 
-  document.getElementById("expected_harvest").value = `${yyyy}-${mm}-${dd}`;
+  harvestInput.value = `${yyyy}-${mm}-${dd}`;
 }
 
 // 🔹 Map loader
@@ -348,7 +384,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     const res = await fetch(`${BASE_URL}/backend/api/crops/getCrops.php`);
     const data = await res.json();
 
-    // ✅ Extract data
     const onFarmCrops = data.onFarm || [];
     const container = document.getElementById("onFarmCrops");
     container.innerHTML = "";
@@ -365,10 +400,9 @@ document.addEventListener("DOMContentLoaded", async () => {
       const card = `
         <div class="col">
           <div class="card h-100 shadow-sm border-0">
-            <img src="${BASE_URL}/${crop.image_path}" 
-                 class="card-img-top" 
-                 alt="${crop.crop_name}" 
-                 style="height:150px; object-fit:cover;">
+            <img src="${BASE_URL}/${crop.image_path}"
+                 class="card-img-top fixed-crop-img"
+                 alt="${crop.crop_name}">
             <div class="card-body">
               <h6 class="card-title mb-1">${crop.crop_name}</h6>
               <p class="text-muted small mb-1">Field ID: ${crop.field_id}</p>
