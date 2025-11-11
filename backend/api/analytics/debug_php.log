@@ -975,3 +975,39 @@ ModuleNotFoundError: import of asyncio halted; None in sys.modules
 [2025-11-08 07:39:32] STDERR: 
 [2025-11-08 07:39:32] === End Request ===
 
+[2025-11-10 15:59:14] === New Request ===
+[2025-11-10 15:59:14] Command: "C:\Program Files\Python310\python.exe" -u "C:\xampp\htdocs\Agrilink\backend\api\analytics\smart_care_engine.py"
+[2025-11-10 15:59:14] Working Dir: C:\xampp\htdocs\Agrilink\backend\api\analytics
+[2025-11-10 15:59:14] Payload: {"N":100,"P":50,"K":50,"ph":7,"city":"Balayan"}
+[2025-11-10 15:59:14] Exit code: 0
+[2025-11-10 15:59:14] STDOUT length: 851
+[2025-11-10 15:59:14] STDOUT: {"recommended_crop": "papaya", "probabilities": {"apple": 0.0, "banana": 4.060502656180553e-26, "blackgram": 3.7298008162443757e-87, "chickpea": 0.0, "coconut": 8.059538935620977e-26, "coffee": 7.1026043478783e-15, "cotton": 1.8752313097640174e-24, "grapes": 0.0, "jute": 1.1751073196289261e-24, "kidneybeans": 4.2985592336049e-253, "lentil": 2.9904694597950985e-54, "maize": 6.893702225998004e-26, "mango": 3.395709822908997e-228, "mothbeans": 1.5150226276414436e-30, "mungbean": 2.738194906339529e-32, "muskmelon": 9.195227990263141e-18, "orange": 2.3835313934219764e-132, "papaya": 0.9999998887077899, "pigeonpeas": 1.4534065996080143e-37, "pomegranate": 0.0, "rice": 1.1128918647585563e-07, "watermelon": 3.0173345781998216e-12}, "features": {"N": 100.0, "P": 50.0, "K": 50.0, "temperature": 26.51, "humidity": 87.0, "ph": 7.0, "rainfall": 0.0}}
+
+[2025-11-10 15:59:14] STDERR length: 0
+[2025-11-10 15:59:14] STDERR: 
+[2025-11-10 15:59:14] === End Request ===
+
+[2025-11-10 15:59:40] === New Request ===
+[2025-11-10 15:59:40] Command: "C:\Program Files\Python310\python.exe" -u "C:\xampp\htdocs\Agrilink\backend\api\analytics\smart_care_engine.py"
+[2025-11-10 15:59:40] Working Dir: C:\xampp\htdocs\Agrilink\backend\api\analytics
+[2025-11-10 15:59:40] Payload: {"N":200,"P":100,"K":100,"ph":9,"city":"Balayan"}
+[2025-11-10 15:59:40] Exit code: 0
+[2025-11-10 15:59:40] STDOUT length: 880
+[2025-11-10 15:59:40] STDOUT: {"recommended_crop": "banana", "probabilities": {"apple": 1.2846370514913395e-224, "banana": 0.9999366265480667, "blackgram": 6.480343487821297e-138, "chickpea": 1e-323, "coconut": 2.723582698593015e-103, "coffee": 3.880756770647707e-34, "cotton": 2.543946500765452e-55, "grapes": 6.530076562854077e-285, "jute": 3.218205749232423e-22, "kidneybeans": 0.0, "lentil": 1.5595949348749953e-139, "maize": 1.0473773955437269e-88, "mango": 2.3974927406499715e-279, "mothbeans": 1.2788978805603822e-97, "mungbean": 1.896710076424082e-104, "muskmelon": 2.178065624717863e-21, "orange": 2.595216700532317e-244, "papaya": 2.6517491368953387e-36, "pigeonpeas": 2.83075618877084e-134, "pomegranate": 0.0, "rice": 1.600655138271122e-18, "watermelon": 6.337345194693217e-05}, "features": {"N": 200.0, "P": 100.0, "K": 100.0, "temperature": 26.51, "humidity": 87.0, "ph": 9.0, "rainfall": 0.0}}
+
+[2025-11-10 15:59:40] STDERR length: 0
+[2025-11-10 15:59:40] STDERR: 
+[2025-11-10 15:59:40] === End Request ===
+
+[2025-11-10 16:00:02] === New Request ===
+[2025-11-10 16:00:02] Command: "C:\Program Files\Python310\python.exe" -u "C:\xampp\htdocs\Agrilink\backend\api\analytics\smart_care_engine.py"
+[2025-11-10 16:00:02] Working Dir: C:\xampp\htdocs\Agrilink\backend\api\analytics
+[2025-11-10 16:00:02] Payload: {"N":40,"P":50,"K":50,"ph":4,"city":"Balayan"}
+[2025-11-10 16:00:02] Exit code: 0
+[2025-11-10 16:00:02] STDOUT length: 861
+[2025-11-10 16:00:02] STDOUT: {"recommended_crop": "rice", "probabilities": {"apple": 0.0, "banana": 1.6311328362346216e-30, "blackgram": 1.1443289396333079e-86, "chickpea": 0.0, "coconut": 8.691246045197067e-13, "coffee": 6.956948804506141e-19, "cotton": 2.731355980142806e-27, "grapes": 0.0, "jute": 7.134349744719403e-24, "kidneybeans": 2.3108944910505586e-247, "lentil": 8.437902187706189e-41, "maize": 2.893975549481141e-22, "mango": 1.4346608341739794e-209, "mothbeans": 9.250605836221266e-11, "mungbean": 2.162828920036256e-30, "muskmelon": 5.332222833942508e-34, "orange": 9.509137248619472e-118, "papaya": 1.889217633180896e-63, "pigeonpeas": 5.653745279137633e-18, "pomegranate": 6.682452253e-313, "rice": 0.9999999999066205, "watermelon": 2.7643456535870306e-23}, "features": {"N": 40.0, "P": 50.0, "K": 50.0, "temperature": 26.51, "humidity": 87.0, "ph": 4.0, "rainfall": 0.0}}
+
+[2025-11-10 16:00:02] STDERR length: 0
+[2025-11-10 16:00:02] STDERR: 
+[2025-11-10 16:00:02] === End Request ===
+

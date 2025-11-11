@@ -136,12 +136,11 @@ if ($res) {
   <!-- Task List View (Shows first) -->
   <div id="taskListView">
     <div class="d-flex justify-content-between align-items-center mb-4">
-      <h4 class="m-0"><i class="bi bi-list-task"></i> All Tasks</h4>
+      <h2 class="m-0 text-success"><i class="bi bi-clipboard2-check me-2"></i> Field Task Manager</h2>
       <button class="btn btn-success" onclick="showAddTaskStepper()">
         <i class="bi bi-plus-circle"></i> Add Task
       </button>
     </div>
-
     <?php if (empty($assignedTasks)): ?>
       <div class="alert alert-info">
         <i class="bi bi-info-circle"></i> No tasks yet. Click "Add Task" to create one.
@@ -195,15 +194,14 @@ if ($res) {
       </div>
     <?php endif; ?>
   </div>
-
   <!-- Add Task Stepper (Hidden by default) -->
-  <div id="stepperSection" style="display: none;">
+  <div id="stepperSection" style="display:none;">
     <div class="d-flex justify-content-between align-items-center mb-3">
       <div class="d-flex align-items-center gap-2">
         <button class="btn btn-outline-secondary btn-sm" onclick="hideAddTaskStepper()">
           <i class="bi bi-x-lg"></i> Cancel
         </button>
-        <h4 class="m-0">Add Task</h4>
+        <h2 class="m-0 text-success"><i class="bi bi-clipboard-plus me-2"></i> Add Task</h2>
       </div>
     </div>
 

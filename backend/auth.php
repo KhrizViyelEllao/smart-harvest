@@ -1,38 +1,60 @@
 <?php
+declare(strict_types=1);
+ob_start();
 session_start();
-include 'db_connect.php'; // siguraduhin tama path
+include 'db_connect.php';
 
-if ($_SERVER["REQUEST_METHOD"] == "POST") {
-    if (!isset($_POST['username'], $_POST['password'])) {
-        echo "❌ Missing username or password.";
-        exit;
-    }
-    $username = $_POST['username'];
-    $password = $_POST['password'];
-
-    // Use prepared statements to prevent SQL injection
-    $stmt = $conn->prepare("SELECT * FROM users WHERE username = ? LIMIT 1");
-    $stmt->bind_param("s", $username);
-    $stmt->execute();
-    $result = $stmt->get_result();
-
-    if ($result && $result->num_rows > 0) {
-        $row = $result->fetch_assoc();
-
-        // Plain text password check (testing only)
-        if ($password === $row['password']) {
-            // Save session
-            $_SESSION['user_id'] = $row['user_id']; 
-            $_SESSION['username'] = $row['username'];
-            $_SESSION['role'] = $row['role'];
-
-            header("Location: ../layout.php");
-            exit;
-        } else {
-            echo "❌ Invalid password";
-        }
-    } else {
-        echo "❌ Username not found";
-    }
-    $stmt->close();
+if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') {
+  header('Location: /Agrilink/index.php?login_error=' . urlencode('Invalid request'));
+  exit;
 }
+
+$login = trim($_POST['username'] ?? '');
+$pass  = $_POST['password'] ?? '';
+if ($login === '' || $pass === '') {
+  header('Location: /Agrilink/index.php?login_error=' . urlencode('Missing credentials'));
+  exit;
+}
+
+$stmt = $conn->prepare("SELECT user_id,name,role,username,email,password,is_active,address,contact_number
+                        FROM users WHERE username=? OR email=? LIMIT 1");
+if (!$stmt) {
+  header('Location: /Agrilink/index.php?login_error=' . urlencode('Server error'));
+  exit;
+}
+$stmt->bind_param('ss', $login, $login);
+$stmt->execute();
+$res = $stmt->get_result();
+if (!$res || $res->num_rows === 0) {
+  $stmt->close();
+  header('Location: /Agrilink/index.php?login_error=' . urlencode('Invalid credentials'));
+  exit;
+}
+$u = $res->fetch_assoc();
+$stmt->close();
+
+if ((int)$u['is_active'] !== 1) {
+  header('Location: /Agrilink/index.php?login_error=' . urlencode('Account inactive'));
+  exit;
+}
+
+$valid = password_verify($pass, $u['password']) || $pass === $u['password'];
+if (!$valid) {
+  header('Location: /Agrilink/index.php?login_error=' . urlencode('Invalid credentials'));
+  exit;
+}
+
+$_SESSION['user_id']   = (int)$u['user_id'];
+$_SESSION['name']      = $u['name'];
+$_SESSION['role']      = $u['role'];
+$_SESSION['username']  = $u['username'];
+$_SESSION['email']     = $u['email'];
+$_SESSION['address']   = $u['address'];
+$_SESSION['contact']   = $u['contact_number'];
+
+if ($u['role'] === 'consumer') {
+  header('Location: /Agrilink/pages/shop.php');
+} else {
+  header('Location: /Agrilink/layout.php');
+}
+exit;

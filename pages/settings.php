@@ -81,7 +81,7 @@ if ($peopleResult) {
   <!-- Header -->
   <div class="d-flex justify-content-between align-items-center mb-4">
     <div>
-      <h3 class="mb-1"><i class="bi bi-people"></i> People Management</h3>
+      <h3 class="mb-1 text-success"><i class="bi bi-people-gear me-2"></i> People Management</h3>
       <p class="text-muted mb-0">Manage admins and farmers</p>
     </div>
     <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addPersonModal">

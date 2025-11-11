@@ -110,32 +110,16 @@ if (!in_array($page, array_merge($validPages, $taskStepPages))) {
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 
 <!-- ✅ Optional JS per-page -->
-<?php if ($page === 'dashboard'): ?>
-<script src="assets/js/dashboard.js"></script>
-<script> if (typeof dashboardInit === "function") dashboardInit(); </script>
-
-<?php elseif ($page === 'analytics'): ?>
-<script src="assets/js/analytics.js"></script>
-<script> if (typeof analyticsInit === "function") analyticsInit(); </script>
-
-<?php elseif ($page === 'tasks'): ?>
-<script src="assets/js/tasks.js"></script>
-<script> if (typeof tasksInit === "function") tasksInit(); </script>
-
-<?php elseif ($page === 'map'): ?>
-<script src="assets/js/map.js"></script>
-<script> if (typeof mapInit === "function") mapInit(); </script>
-
-<?php elseif ($page === 'harvest'): ?>
-<script src="assets/js/harvest.js"></script>
-<script> if (typeof harvestInit === "function") harvestInit(); </script>
-
-
-<?php elseif ($page === 'crops'): ?>
-<script src="assets/js/crops.js"></script>
-<script> if (typeof cropsInit === "function") cropsInit(); </script>
-
-<?php endif; ?>
+<?php
+  // Dynamically include assets/js/{page}.js only if it exists
+  $assetJsRel = "assets/js/{$page}.js";
+  $assetJsAbs = __DIR__ . '/' . $assetJsRel;
+  if (file_exists($assetJsAbs)) {
+      echo '<script src="'.htmlspecialchars($assetJsRel, ENT_QUOTES).'"></script>';
+      $initFunc = $page.'Init';
+      echo "<script>if (typeof {$initFunc} === 'function') {$initFunc}();</script>";
+  }
+?>
 
 </body>
 </html>

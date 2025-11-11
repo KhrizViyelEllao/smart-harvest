@@ -7,6 +7,7 @@ $sql = "
   SELECT
     h.harvest_id,
     h.crop_id,
+    h.field_id,
     h.field_task_id,
     h.harvest_date,
     h.predicted_yield_kg,
@@ -15,11 +16,14 @@ $sql = "
     h.notes,
     h.created_at,
     c.crop_name,
-    f.name AS field_name
+    f.name AS field_name,
+    p.product_id,
+    p.status AS product_status
   FROM harvests h
   LEFT JOIN crops c ON h.crop_id = c.crop_id
   LEFT JOIN field_tasks ft ON h.field_task_id = ft.field_task_id
-  LEFT JOIN fields f ON ft.field_id = f.field_id
+  LEFT JOIN fields f ON h.field_id = f.field_id
+  LEFT JOIN products p ON p.harvest_id = h.harvest_id
   ORDER BY h.harvest_date DESC, h.created_at DESC
 ";
 if ($result = $conn->query($sql)) {
@@ -74,7 +78,9 @@ sort($cropOptions);
 ?>
 <div class="container py-4">
   <div class="d-flex justify-content-between align-items-center mb-3">
-    <h2 class="mb-0 fw-semibold text-success">Harvest Log</h2>
+    <h2 class="mb-0 fw-semibold text-success">
+      <i class="bi bi-basket2-fill me-2"></i>Harvest Log
+    </h2>
     <span class="text-muted small">Track your crop yield and inventory</span>
   </div>
 
@@ -248,9 +254,28 @@ sort($cropOptions);
                     <?php echo htmlspecialchars($item['notes'] ?: '—'); ?>
                   </td>
                   <td class="text-end">
-                    <button class="btn btn-sm btn-outline-success update-yield-btn">
-                      <?php echo $actualSet ? 'Edit yield' : 'Log yield'; ?>
-                    </button>
+                    <div class="btn-group btn-group-sm">
+                      <button class="btn btn-outline-success update-yield-btn">
+                        <?php echo $actualSet ? 'Edit yield' : 'Log yield'; ?>
+                      </button>
+
+                      <?php if ($actualSet && empty($item['product_id'])): ?>
+                        <button
+                          type="button"
+                          class="btn btn-outline-primary market-btn"
+                          data-harvest-id="<?php echo (int)$item['harvest_id']; ?>"
+                          data-default-name="<?php echo htmlspecialchars($item['crop_name'] ?? 'Product'); ?>"
+                          data-default-qty="<?php echo htmlspecialchars($item['actual_yield_kg'] ?? ''); ?>"
+                        >
+                          Add to Market
+                        </button>
+                      <?php elseif ($actualSet && !empty($item['product_id'])): ?>
+                        <span class="badge bg-<?php echo ($item['product_status']==='available'?'success':'secondary'); ?>">
+                          In Market: <?php echo htmlspecialchars($item['product_status']); ?>
+                        </span>
+                        <a class="btn btn-outline-secondary" href="layout.php?page=market">Manage</a>
+                      <?php endif; ?>
+                    </div>
                   </td>
                 </tr>
               <?php endforeach; ?>
@@ -288,6 +313,45 @@ sort($cropOptions);
       <div class="modal-footer">
         <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
         <button type="submit" class="btn btn-success">Save</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="modal fade" id="addMarketModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <form id="marketForm" class="modal-content" enctype="multipart/form-data">
+      <div class="modal-header">
+        <h5 class="modal-title">Publish Harvest to Market</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="marketHarvestId" name="harvest_id">
+        <div class="mb-3">
+          <label class="form-label">Product Name</label>
+          <input type="text" class="form-control" id="marketName" required>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Short Description</label>
+          <textarea class="form-control" id="marketDescription" rows="2"></textarea>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Price per kg (PHP)</label>
+          <input type="number" step="0.01" min="0" class="form-control" id="marketPrice" required>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Available Quantity (kg)</label>
+          <input type="number" step="0.01" min="0" class="form-control" id="marketQty" required>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Image (optional)</label>
+          <input type="file" class="form-control" id="marketImage" accept="image/*">
+        </div>
+        <div class="alert alert-warning d-none" id="marketError"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" type="button" data-bs-dismiss="modal">Cancel</button>
+        <button class="btn btn-primary" type="submit">Publish</button>
       </div>
     </form>
   </div>
@@ -379,5 +443,51 @@ document.addEventListener('DOMContentLoaded', () => {
       row.classList.toggle('d-none', !(matchesCrop && matchesQuality && matchesKeyword));
     });
   }
+
+  const addMarketModalEl = document.getElementById('addMarketModal');
+  const addMarketModal = new bootstrap.Modal(addMarketModalEl);
+  const marketForm = document.getElementById('marketForm');
+  const mHarvest = document.getElementById('marketHarvestId');
+  const mName = document.getElementById('marketName');
+  const mDesc = document.getElementById('marketDescription');
+  const mPrice = document.getElementById('marketPrice');
+  const mQty = document.getElementById('marketQty');
+  const mImage = document.getElementById('marketImage');
+  const mErr = document.getElementById('marketError');
+
+  document.querySelectorAll('.market-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      mHarvest.value = btn.dataset.harvestId || '';
+      mName.value = btn.dataset.defaultName || 'Product';
+      mDesc.value = '';
+      mPrice.value = '';
+      mQty.value = btn.dataset.defaultQty || '';
+      mImage.value = '';
+      mErr.classList.add('d-none');
+      addMarketModal.show();
+    });
+  });
+
+  marketForm?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const fd = new FormData();
+    fd.append('harvest_id', mHarvest.value);
+    fd.append('name', mName.value.trim());
+    fd.append('description', mDesc.value.trim());
+    fd.append('price_per_kg', mPrice.value);
+    fd.append('available_qty', mQty.value);
+    if (mImage.files[0]) fd.append('image', mImage.files[0]);
+
+    try {
+      const res = await fetch(`${base}/backend/api/products/store.php`, { method: 'POST', body: fd });
+      const json = await res.json();
+      if (!json.success) throw new Error(json.message || 'Failed to publish');
+      addMarketModal.hide();
+      window.location.href = `${base}/layout.php?page=market`;
+    } catch (err) {
+      mErr.textContent = err.message || 'Publish failed';
+      mErr.classList.remove('d-none');
+    }
+  });
 });
 </script>

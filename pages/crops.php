@@ -1,4 +1,21 @@
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<!-- Leaflet (needed for map / L object) -->
+<link
+  rel="stylesheet"
+  href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+  integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+  crossorigin=""
+/>
+<script
+  src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+  integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+  crossorigin=""
+></script>
+
+<script>
+const BASE_URL = window.location.origin + "/Agrilink"; // define early & once
+</script>
+
 <style>
 .fixed-crop-img {
   height: 110px;           /* was 180px */
@@ -30,22 +47,16 @@
 </style>
 
 <div class="container py-4">
-  <h2 class="mb-3">Crop Catalogue</h2>
+  <h2 class="mb-3 text-success"><i class="bi bi-flower2 me-2"></i>Crop Catalogue</h2>
 
   <!-- Search -->
   <input type="text" id="searchCrop" class="form-control mb-3" placeholder="Search crops...">
 
-  <!-- Farm Stats -->
-  <div class="mb-3">
-    <span class="badge bg-success">Active</span>
-    <span class="badge bg-warning text-dark">Planned</span>
-    <span class="badge bg-secondary">Past</span>
-    <span class="badge bg-danger">Needs plan</span>
-  </div>
+
 
   <!-- On your farm -->
   <h5>On your farm</h5>
-<div id="onFarmCrops" class="row compact-cards row-cols-3 row-cols-md-6 g-2 mb-3"></div>
+  <div id="onFarmCrops" class="row compact-cards row-cols-3 row-cols-md-6 g-2 mb-3"></div>
 
   <!-- Add to your farm -->
   <h5>Add to your farm</h5>
@@ -133,9 +144,12 @@
             <textarea id="description" class="form-control" rows="3"></textarea>
           </div>
 
+          <!-- Replace text path with a file input + preview -->
           <div class="mb-3">
-            <label for="image_path" class="form-label">Image Path (optional)</label>
-            <input type="text" id="image_path" class="form-control" placeholder="assets\images">
+            <label for="image_file" class="form-label">Image (optional)</label>
+            <input type="file" id="image_file" class="form-control" accept="image/*">
+            <div class="form-text">PNG/JPG up to 2MB.</div>
+            <img id="image_preview" alt="Preview" style="display:none; max-height:120px; border-radius:6px; margin-top:8px;">
           </div>
 
           <button type="submit" class="btn btn-success w-100">Save Crop</button>
@@ -147,74 +161,100 @@
 
 <script>
 let allFields = [];
-let allCrops = [];
+let allCrops  = [];
 let map;
 
-// 🔹 Initialization
-document.addEventListener("DOMContentLoaded", cropManagementInit);
+document.addEventListener("DOMContentLoaded", () => {
+  initCrops();
+  wireEvents();
+  initImagePreview();
+});
 
-async function cropManagementInit() {
+function wireEvents() {
+  document.getElementById("planting_date")?.addEventListener("change", handlePlantingDateChange);
+
+  // Add existing crop to field
+  document.addEventListener("click", e => {
+    if (e.target.matches(".btn-outline-success")) {
+      const card = e.target.closest(".crop-card");
+      if (!card) return;
+      document.getElementById("selectedCropId").value       = card.dataset.id;
+      document.getElementById("selectedCropDuration").value = card.dataset.duration || 0;
+      document.getElementById("planting_date").value = "";
+      document.getElementById("expected_harvest").value = "";
+      new bootstrap.Modal(document.getElementById("addCropModal")).show();
+      loadMap();
+    }
+  });
+
+  // Add crop to field submit
+  document.getElementById("addCropForm")?.addEventListener("submit", submitAddCropToField);
+
+  // New crop submit (image upload)
+  document.getElementById("newCropForm")?.addEventListener("submit", submitNewCrop);
+}
+
+async function initCrops() {
   try {
-    const cropRes = await fetch("backend/api/crops/getCrops.php");
-    const cropData = await cropRes.json();
+    const res  = await fetch(`${BASE_URL}/backend/api/crops/getCrops.php`);
+    const data = await res.json();
 
-    allCrops = [...(cropData.onFarm || []), ...(cropData.notOnFarm || [])];
+    const onFarm    = data.onFarm    || [];
+    const notOnFarm = data.notOnFarm || [];
 
-    renderCrops(cropData.onFarm, "onFarmCrops", true);
-    renderCrops(allCrops, "notOnFarmCrops", false);
+    allCrops = [...onFarm, ...notOnFarm];
 
-    await loadFields();
+    renderCropCollection(onFarm, "onFarmCrops", true);
+    renderCropCollection(notOnFarm, "notOnFarmCrops", false);
 
-    // Search feature
-    document.getElementById("searchCrop").addEventListener("input", (e) => {
+    document.getElementById("searchCrop").addEventListener("input", e => {
       const term = e.target.value.toLowerCase();
       document.querySelectorAll(".crop-card").forEach(card => {
-        const name = card.dataset.name.toLowerCase();
-        card.style.display = name.includes(term) ? "" : "none";
+        card.style.display = card.dataset.name.toLowerCase().includes(term) ? "" : "none";
       });
     });
 
-    // 🟢 Planting Date -> Expected Harvest auto calculation
-    document.getElementById("planting_date").addEventListener("change", handlePlantingDateChange);
-
-  } catch (err) {
-    console.error("Error loading data:", err);
+    await loadFields();
+  } catch (err) { 
+    
+    console.error("Failed to init crops:", err);
+    document.getElementById("onFarmCrops").innerHTML = `<div class="col-12 text-danger small">Error loading crops.</div>`;
   }
 }
 
-// 🔹 Render Crops
-function renderCrops(list, containerId, onFarm) {
-  const container = document.getElementById(containerId);
-  container.innerHTML = "";
-
-  if (!list || list.length === 0) {
-    container.innerHTML = "<p class='text-muted'>No crops found.</p>";
+function renderCropCollection(list, containerId, onFarm) {
+  const wrap = document.getElementById(containerId);
+  wrap.innerHTML = "";
+  if (!list.length) {
+    wrap.innerHTML = `<div class="col-12 text-muted small">No crops.</div>`;
     return;
   }
-
   list.forEach(crop => {
     const col = document.createElement("div");
     col.className = "col crop-card";
-    col.dataset.name = crop.crop_name;
+    col.dataset.name = crop.crop_name || "";
     col.dataset.id = crop.crop_id;
     col.dataset.duration = crop.duration || 0;
 
+    const rawPath = crop.image_path || "";
+    const imgUrl = rawPath
+      ? (rawPath.startsWith("http") ? rawPath : `${BASE_URL}/${rawPath}`)
+      : `${BASE_URL}/assets/images/placeholder.jpg`;
+
     col.innerHTML = `
       <div class="card shadow-sm h-100">
-        <img src="${crop.image_path || 'assets/images/placeholder.jpg'}"
-          class="card-img-top fixed-crop-img"
-          alt="${crop.crop_name}">
+        <img src="${imgUrl}" class="card-img-top fixed-crop-img" alt="${escapeHtml(crop.crop_name)}"
+             onerror="this.onerror=null;this.src='${BASE_URL}/assets/images/placeholder.jpg';">
         <div class="card-body text-center">
-          <h6>${crop.crop_name}</h6>
+          <h6>${escapeHtml(crop.crop_name)}</h6>
           ${
             onFarm
-              ? `<span class="badge bg-${getStatusColor(crop.status)}">${crop.status}</span>`
-              : `<button class="btn btn-sm btn-outline-success mt-2">Add</button>`
+              ? `<span class="badge bg-${getStatusColor(crop.status)}">${escapeHtml(crop.status||'Active')}</span>`
+              : `<button type="button" class="btn btn-sm btn-outline-success mt-2">Add</button>`
           }
         </div>
       </div>`;
-
-    container.appendChild(col);
+    wrap.appendChild(col);
   });
 }
 
@@ -228,263 +268,135 @@ function getStatusColor(status) {
   }
 }
 
-// 🔹 Fetch and populate fields
 async function loadFields() {
   try {
-    const BASE_URL = window.location.origin + "/Agrilink";
     const res = await fetch(`${BASE_URL}/backend/api/map/get_fields.php`);
     allFields = await res.json();
     populateFieldDropdown(allFields);
-  } catch (err) {
-    console.error("Error loading fields:", err);
+  } catch (e) {
+    console.error("Fields load error:", e);
   }
 }
 
 function populateFieldDropdown(fields) {
-  const select = document.getElementById("field_id");
-  if (!select) return;
-
-  if (!fields || fields.length === 0) {
-    select.innerHTML = `<option disabled selected>No fields available</option>`;
+  const sel = document.getElementById("field_id");
+  if (!sel) return;
+  if (!fields.length) {
+    sel.innerHTML = `<option disabled selected>No fields available</option>`;
     return;
   }
-
-  select.innerHTML = fields.map(f => 
-    `<option value="${f.field_id}">
-        ${f.name || '(Unnamed Field)'}
-     </option>`
+  sel.innerHTML = fields.map(f =>
+    `<option value="${f.field_id}">${escapeHtml(f.name || ('Field '+f.field_id))}</option>`
   ).join("");
 }
 
-// 🔹 Add Crop button handler
-document.addEventListener("click", (e) => {
-  if (e.target.matches(".btn-outline-success")) {
-    const card = e.target.closest(".crop-card");
-    const cropId = card.dataset.id;
-
-    const selectedCrop = allCrops.find(c => String(c.crop_id) === String(cropId));
-    const duration = selectedCrop?.duration ?? card.dataset.duration ?? 0;
-
-    document.getElementById("selectedCropId").value = cropId;
-    document.getElementById("selectedCropDuration").value = duration;
-
-    const plantingInput = document.getElementById("planting_date");
-    const harvestInput = document.getElementById("expected_harvest");
-    if (plantingInput) plantingInput.value = "";
-    if (harvestInput) harvestInput.value = "";
-
-    const modal = new bootstrap.Modal(document.getElementById("addCropModal"));
-    modal.show();
-
-    loadMap();
-  }
-});
-
-// 🔹 Auto-calculate Expected Harvest Date
 function handlePlantingDateChange() {
-  const plantingInput = document.getElementById("planting_date");
-  const harvestInput = document.getElementById("expected_harvest");
-  const durationValue = parseInt(document.getElementById("selectedCropDuration").value, 10) || 0;
-
-  if (!plantingInput || !harvestInput) return;
-
-  const plantingDate = plantingInput.value;
-  if (!plantingDate || durationValue <= 0) {
-    harvestInput.value = "";
-    return;
-  }
-
-  const plant = new Date(plantingDate);
-  if (Number.isNaN(plant.getTime())) {
-    harvestInput.value = "";
-    return;
-  }
-
-  plant.setDate(plant.getDate() + durationValue);
-
-  const yyyy = plant.getFullYear();
-  const mm = String(plant.getMonth() + 1).padStart(2, "0");
-  const dd = String(plant.getDate()).padStart(2, "0");
-
-  harvestInput.value = `${yyyy}-${mm}-${dd}`;
+  const planting = document.getElementById("planting_date").value;
+  const duration = parseInt(document.getElementById("selectedCropDuration").value, 10) || 0;
+  const out = document.getElementById("expected_harvest");
+  if (!planting || !duration) { out.value = ""; return; }
+  const d = new Date(planting);
+  if (isNaN(d)) { out.value = ""; return; }
+  d.setDate(d.getDate() + duration);
+  out.value = d.toISOString().slice(0,10);
 }
 
-// 🔹 Map loader
 function loadMap() {
-  if (map) {
-    map.eachLayer(layer => {
-      if (layer instanceof L.TileLayer) return;
-      map.removeLayer(layer);
-    });
-  } else {
+  if (!document.getElementById("map")) return;
+  if (!map) {
     map = L.map("map").setView([13.75, 121.05], 12);
-    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png").addTo(map);
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      attribution: "&copy; OpenStreetMap contributors"
+    }).addTo(map);
   }
+  // Clear previous field layers (keep base tiles)
+  map.eachLayer(l => { if (!(l instanceof L.TileLayer)) map.removeLayer(l); });
 
   allFields.forEach(f => {
-    if (f.geometry) {
-      const coords = JSON.parse(f.geometry);
-      const layer = L.geoJSON(coords).addTo(map);
+    if (!f.geometry) return;
+    try {
+      const geo = JSON.parse(f.geometry);
+      const layer = L.geoJSON(geo).addTo(map);
       layer.on("click", () => {
         document.getElementById("field_id").value = f.field_id;
       });
+      map.fitBounds(layer.getBounds());
+    } catch(_) {}
+  });
+}
+
+async function submitAddCropToField(e) {
+  e.preventDefault();
+  const field_id        = document.getElementById("field_id").value;
+  const crop_id         = document.getElementById("selectedCropId").value;
+  const planting_date   = document.getElementById("planting_date").value;
+  const expected_harvest= document.getElementById("expected_harvest").value;
+  if (!field_id || !crop_id || !planting_date || !expected_harvest) {
+    alert("Please complete all fields.");
+    return;
+  }
+  try {
+    const res = await fetch(`${BASE_URL}/backend/api/crops/addCrop.php`, {
+      method:"POST",
+      headers:{ "Content-Type":"application/json" },
+      body: JSON.stringify({ field_id, crop_id, planting_date, expected_harvest })
+    });
+    const j = await res.json();
+    if (!j.success) return alert(j.message||"Failed");
+    bootstrap.Modal.getInstance(document.getElementById("addCropModal")).hide();
+    initCrops();
+  } catch(err){
+    alert("Error saving: "+err.message);
+  }
+}
+
+async function submitNewCrop(e) {
+  e.preventDefault();
+  const cropNameInput = document.getElementById("crop_name");
+  const durationInput = document.getElementById("duration");
+  const cropName = cropNameInput.value.trim();
+  const duration = durationInput.value.trim();
+  if (!cropName || !duration) {
+    Swal.fire({icon:"warning",title:"Incomplete",text:"Crop name and duration required.",confirmButtonColor:"#198754"});
+    return;
+  }
+  const fd = new FormData(e.target);
+  try {
+    const res = await fetch(`${BASE_URL}/backend/api/crops/addNewCrop.php`, { method:"POST", body:fd });
+    const data = await res.json();
+    if (data.success) {
+      Swal.fire({icon:"success",title:"Added",text:data.message,confirmButtonColor:"#198754"})
+        .then(()=>{
+          bootstrap.Modal.getInstance(document.getElementById("newCropModal")).hide();
+          e.target.reset();
+          document.getElementById("image_preview").style.display="none";
+          initCrops();
+        });
+    } else {
+      Swal.fire({icon:"error",title:"Failed",text:data.message||"Error"});
+    }
+  } catch(err){
+    Swal.fire({icon:"error",title:"Upload Error",text:err.message});
+  }
+}
+
+function initImagePreview() {
+  const inp = document.getElementById("image_file");
+  const prev= document.getElementById("image_preview");
+  if (!inp) return;
+  inp.addEventListener("change", () => {
+    const f = inp.files[0];
+    if (f) {
+      prev.src = URL.createObjectURL(f);
+      prev.style.display = "block";
+    } else {
+      prev.src = "";
+      prev.style.display = "none";
     }
   });
 }
 
-// 🟢 Handle Add Crop Form Submission
-document.getElementById("addCropForm").addEventListener("submit", async function (e) {
-  e.preventDefault();
-
-  const field_id = document.getElementById("field_id").value;
-  const crop_id = document.getElementById("selectedCropId").value;
-  const planting_date = document.getElementById("planting_date").value;
-  const expected_harvest = document.getElementById("expected_harvest").value;
-
-  if (!field_id || !crop_id || !planting_date || !expected_harvest) {
-    alert("⚠️ Please complete all fields before saving.");
-    return;
-  }
-
-  try {
-    const BASE_URL = window.location.origin + "/Agrilink";
-    const res = await fetch(`${BASE_URL}/backend/api/crops/addCrop.php`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        field_id,
-        crop_id,
-        planting_date,
-        expected_harvest
-      }),
-    });
-
-    const data = await res.json();
-
-    if (data.success) {
-      alert("Crop added successfully!");
-      const modal = bootstrap.Modal.getInstance(document.getElementById("addCropModal"));
-      modal.hide();
-
-      // Optionally reload crop list
-      cropManagementInit();
-    } else {
-      alert("Failed to add crop: " + (data.message || "Unknown error"));
-    }
-  } catch (err) {
-    console.error("Error saving crop:", err);
-    alert("Error saving crop. Check console for details.");
-  }
-});
-
-document.addEventListener("DOMContentLoaded", async () => {
-  const BASE_URL = window.location.origin + "/Agrilink";
-
-  try {
-    const res = await fetch(`${BASE_URL}/backend/api/crops/getCrops.php`);
-    const data = await res.json();
-
-    const onFarmCrops = data.onFarm || [];
-    const container = document.getElementById("onFarmCrops");
-    container.innerHTML = "";
-
-    if (onFarmCrops.length === 0) {
-      container.innerHTML = `
-        <div class="col-12 text-center text-muted">
-          No crops currently on your farm.
-        </div>`;
-      return;
-    }
-
-    onFarmCrops.forEach(crop => {
-      const card = `
-        <div class="col">
-          <div class="card h-100 shadow-sm border-0">
-            <img src="${BASE_URL}/${crop.image_path}"
-                 class="card-img-top fixed-crop-img"
-                 alt="${crop.crop_name}">
-            <div class="card-body">
-              <h6 class="card-title mb-1">${crop.crop_name}</h6>
-              <p class="text-muted small mb-1">Field ID: ${crop.field_id}</p>
-              <p class="text-muted small">Duration: ${crop.duration ? crop.duration + ' days' : 'N/A'}</p>
-            </div>
-          </div>
-        </div>
-      `;
-      container.insertAdjacentHTML("beforeend", card);
-    });
-  } catch (err) {
-    console.error("Error loading crops:", err);
-  }
-});
-
-// 🟢 Handle Add New Crop Form Submission
-document.getElementById("newCropForm").addEventListener("submit", async function (e) {
-  e.preventDefault();
-
-  const crop_name = document.getElementById("crop_name").value.trim();
-  const category = document.getElementById("category").value.trim();
-  const duration = document.getElementById("duration").value.trim();
-  const description = document.getElementById("description").value.trim();
-  const image_path = document.getElementById("image_path").value.trim();
-
-  if (!crop_name || !duration) {
-    Swal.fire({
-      icon: "warning",
-      title: "Incomplete Form",
-      text: "Please enter at least the crop name and duration.",
-      confirmButtonColor: "#198754"
-    });
-    return;
-  }
-
-  const BASE_URL = window.location.origin + "/Agrilink";
-
-  try {
-    const res = await fetch(`${BASE_URL}/backend/api/crops/addNewCrop.php`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        crop_name,
-        description,
-        category,
-        duration,
-        image_path
-      }),
-    });
-
-    const data = await res.json();
-
-    if (data.success) {
-      Swal.fire({
-        icon: "success",
-        title: "Crop Added!",
-        text: data.message,
-        confirmButtonColor: "#198754"
-      }).then(() => {
-        // Close modal
-        const modal = bootstrap.Modal.getInstance(document.getElementById("newCropModal"));
-        modal.hide();
-
-        // Reload crop list
-        cropManagementInit();
-      });
-    } else {
-      Swal.fire({
-        icon: "error",
-        title: "Failed to Add Crop",
-        text: data.message || "Something went wrong.",
-        confirmButtonColor: "#dc3545"
-      });
-    }
-  } catch (err) {
-    console.error("Error adding new crop:", err);
-    Swal.fire({
-      icon: "error",
-      title: "Unexpected Error",
-      text: "Please check console for details.",
-      confirmButtonColor: "#dc3545"
-    });
-  }
-});
+function escapeHtml(str){
+  return (str||"").replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+}
 </script>
