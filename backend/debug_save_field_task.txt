@@ -2,7 +2,7 @@ Array
 (
     [farmer_ids] => Array
         (
-            [0] => 3
+            [0] => 1
         )
 
     [fields] => Array
@@ -14,17 +14,17 @@ Array
     [task_type] => harvest
     [details] => Array
         (
-            [crop_id] => 18
+            [crop_id] => 23
             [field_id] => 15
-            [harvest_date] => 2025-11-13
-            [predicted_yield_kg] => 100
+            [harvest_date] => 2025-12-01
+            [predicted_yield_kg] => 200
             [actual_yield_kg] => 
-            [quality] => high
-            [notes] => otso otso
-            [harvest_id] => 14
+            [quality] => medium
+            [notes] => Bumagyo
+            [harvest_id] => 16
             [fieldId] => 15
-            [fieldName] => aloe vera
-            [cropName] => Aloe Vera
+            [fieldName] => Aloe Vera
+            [cropName] => Rice
         )
 
 )

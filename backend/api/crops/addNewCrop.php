@@ -15,10 +15,10 @@ class CropController {
     }
 
     public function addCrop() {
-        $crop_name   = trim($_POST['crop_name'] ?? '');
-        $description = trim($_POST['description'] ?? '');
-        $category    = trim($_POST['category'] ?? '');
-        $duration    = (int)($_POST['duration'] ?? 0);
+        $crop_name   = $this->pickStr(['crop_name','cropName','name']);
+        $description = $this->pickStr(['description','desc']);
+        $category    = $this->pickStr(['category']);
+        $duration    = $this->pickInt(['duration','duration_days','days']);
 
         if ($crop_name === '' || $duration <= 0) {
             return $this->response(false, "Crop name and valid duration are required.");
@@ -49,6 +49,24 @@ class CropController {
         ]);
     }
 
+    private function pickStr(array $keys): string {
+        foreach ($keys as $k) {
+            if (isset($_POST[$k])) return trim((string)$_POST[$k]);
+        }
+        return '';
+    }
+
+    private function pickInt(array $keys): int {
+        foreach ($keys as $k) {
+            if (!isset($_POST[$k])) continue;
+            $raw = trim((string)$_POST[$k]);
+            if ($raw === '') continue;
+            if (is_numeric($raw)) return max(0, (int)$raw);
+            if (preg_match('/\d+/', $raw, $m)) return max(0, (int)$m[0]);
+        }
+        return 0;
+    }
+
     private function handleUpload($file) {
         if (!$file || $file['error'] !== UPLOAD_ERR_OK) return '';
 
@@ -69,6 +87,7 @@ class CropController {
         $target = $this->uploadDir . '/' . $fname;
 
         if (!move_uploaded_file($file['tmp_name'], $target)) {
+            error_log('addNewCrop: failed to move upload to ' . $target);
             throw new Exception("Failed to save image.");
         }
 

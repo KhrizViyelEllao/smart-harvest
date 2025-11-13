@@ -1,3 +1,10 @@
+<?php
+// No session_start here. Layout starts it first.
+$displayName = $_SESSION['name']
+  ?? $_SESSION['username']
+  ?? $_SESSION['email']
+  ?? 'Guest';
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -25,7 +32,7 @@
     <nav class="header-nav d-flex justify-content-between align-items-center">
         <!-- Logo Section (Left) -->
         <div class="logo-section">
-            <a href="layout.php?page=<?php echo htmlspecialchars($_GET['page'] ?? 'dashboard'); ?>" class="logo-link">
+            <a href="layout.php?page=<?= htmlspecialchars($_GET['page'] ?? 'dashboard') ?>" class="logo-link">
                 <i class="fas fa-seedling me-2"></i>
                 <span>Smart Harvest</span>
             </a>
@@ -45,9 +52,9 @@
 
             <!-- User Profile Dropdown -->
             <div class="user-dropdown">
-                <button class="user-btn d-flex align-items-center" aria-expanded="false" onclick="toggleUserMenu()">
+                <button class="user-btn d-flex align-items-center" onclick="toggleUserMenu()">
                     
-                    <span class="user-name me-2">Viyel Ellao</span>
+                    <span class="user-name me-2"><?= htmlspecialchars($displayName) ?></span>
                     <i class="fas fa-chevron-down ms-1"></i>
                 </button>
                 <div class="dropdown-menu" id="userMenu">

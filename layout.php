@@ -1,4 +1,8 @@
 <?php
+// Start session before any output
+if (session_status() !== PHP_SESSION_ACTIVE) {
+  session_start();
+}
 $page = isset($_GET['page']) ? $_GET['page'] : 'dashboard';
 $validPages = ['dashboard', 'analytics', 'market', 'forecast', 'about', 'map', 'harvest', 'settings', 'crops', 'tasks'];
 

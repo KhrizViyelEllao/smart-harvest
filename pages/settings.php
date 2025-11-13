@@ -2,7 +2,7 @@
 // filepath: c:\xampp\htdocs\Agrilink\pages\settings.php
 include 'backend/db_connect.php';
 
-// Fetch all people (farmers and admins only) - Admins first
+// Fetch all people (farmers + users: admin, consumer)
 $peopleQuery = "
   SELECT 
     f.farmer_id as id,
@@ -23,18 +23,30 @@ $peopleQuery = "
     u.email,
     u.address,
     'Admin' as role,
-    CASE 
-      WHEN u.is_active = 1 THEN 'active'
-      ELSE 'inactive'
-    END as status,
+    CASE WHEN u.is_active = 1 THEN 'active' ELSE 'inactive' END as status,
     u.username,
     u.created_at
   FROM users u
-  WHERE u.role = 1
+  WHERE u.role = 'admin'
+  UNION ALL
+  SELECT 
+    u.user_id as id,
+    u.name,
+    u.contact_number,
+    u.email,
+    u.address,
+    'Consumer' as role,
+    CASE WHEN u.is_active = 1 THEN 'active' ELSE 'inactive' END as status,
+    u.username,
+    u.created_at
+  FROM users u
+  WHERE u.role = 'consumer'
   ORDER BY 
     CASE 
-      WHEN role = 'Admin' THEN 1 
-      ELSE 2 
+      WHEN role = 'Admin' THEN 1
+      WHEN role = 'Farmer' THEN 2
+      WHEN role = 'Consumer' THEN 3
+      ELSE 4
     END,
     created_at DESC
 ";
@@ -67,6 +79,7 @@ if ($peopleResult) {
   }
   .role-admin { background: #dc3545; color: white; }
   .role-farmer { background: #198754; color: white; }
+  .role-consumer { background: #0d6efd; color: white; } /* NEW */
   .status-badge {
     padding: 3px 10px;
     border-radius: 12px;
@@ -96,6 +109,7 @@ if ($peopleResult) {
     $activePeople = count(array_filter($people, fn($p) => $p['status'] === 'active'));
     $farmers = count(array_filter($people, fn($p) => $p['role'] === 'Farmer'));
     $admins = count(array_filter($people, fn($p) => $p['role'] === 'Admin'));
+    $consumers = count(array_filter($people, fn($p) => $p['role'] === 'Consumer')); // NEW
     ?>
     <div class="col-md-3">
       <div class="card border-0 shadow-sm">
@@ -157,6 +171,21 @@ if ($peopleResult) {
         </div>
       </div>
     </div>
+    <div class="col-md-3">
+      <div class="card border-0 shadow-sm">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-center">
+            <div>
+              <h6 class="text-muted mb-1">Consumers</h6>
+              <h3 class="mb-0"><?= $consumers ?></h3>
+            </div>
+            <div class="bg-primary bg-opacity-10 p-3 rounded">
+              <i class="bi bi-bag fs-4 text-primary"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 
   <!-- Search & Filter -->
@@ -171,6 +200,7 @@ if ($peopleResult) {
             <option value="">All Roles</option>
             <option value="Farmer">Farmer</option>
             <option value="Admin">Admin</option>
+            <option value="Consumer">Consumer</option> <!-- NEW -->
           </select>
         </div>
         <div class="col-md-3">
@@ -229,7 +259,7 @@ if ($peopleResult) {
                       <i class="bi bi-pencil"></i> Edit
                     </a>
                   </li>
-                  <?php if ($person['role'] === 'Admin'): ?>
+                  <?php if ($person['role'] === 'Admin' || $person['role'] === 'Consumer'): ?>
                   <li>
                     <a class="dropdown-item" href="#" 
                        onclick="resetPassword(<?= $person['id'] ?>)">
@@ -295,6 +325,7 @@ if ($peopleResult) {
               <option value="">-- Select Role --</option>
               <option value="farmer">Farmer</option>
               <option value="admin">Admin</option>
+              <option value="consumer">Consumer</option> <!-- NEW -->
             </select>
           </div>
           <div class="mb-3">
@@ -408,12 +439,11 @@ if ($peopleResult) {
 </div>
 
 <script>
-  // Show username/password fields ONLY for Admin role
+  // Show username/password fields for Admin and Consumer
   document.getElementById('addRole').addEventListener('change', function() {
     const usernameField = document.getElementById('usernameField');
     const passwordField = document.getElementById('passwordField');
-    
-    if (this.value === 'admin') {
+    if (this.value === 'admin' || this.value === 'consumer') {
       usernameField.style.display = 'block';
       passwordField.style.display = 'block';
       document.getElementById('addUsername').setAttribute('required', 'required');
@@ -475,9 +505,9 @@ if ($peopleResult) {
         document.getElementById('editContact').value = data.person.contact_number || '';
         document.getElementById('editAddress').value = data.person.address || '';
 
-        // Show username field only for Admin
+        // Show username field only for Admin or Consumer
         const usernameField = document.getElementById('editUsernameField');
-        if (role === 'Admin' && data.person.username) {
+        if ((role === 'Admin' || role === 'Consumer') && data.person.username) {
           usernameField.style.display = 'block';
           document.getElementById('editUsername').value = data.person.username;
         } else {

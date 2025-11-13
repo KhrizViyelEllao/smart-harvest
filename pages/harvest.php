@@ -342,6 +342,7 @@ sort($cropOptions);
         <div class="mb-3">
           <label class="form-label">Available Quantity (kg)</label>
           <input type="number" step="0.01" min="0" class="form-control" id="marketQty" required>
+          <div id="qtyHelp" class="form-text"></div>
         </div>
         <div class="mb-3">
           <label class="form-label">Image (optional)</label>
@@ -454,6 +455,25 @@ document.addEventListener('DOMContentLoaded', () => {
   const mQty = document.getElementById('marketQty');
   const mImage = document.getElementById('marketImage');
   const mErr = document.getElementById('marketError');
+  const qtyHelp = document.getElementById('qtyHelp');
+
+  // Enforce max based on actual_yield_kg
+  function validateQty() {
+    const max = parseFloat(mQty.max || '0') || 0;
+    const val = parseFloat(mQty.value || '0');
+    let msg = '';
+    if (isNaN(val) || val < 0) {
+      msg = 'Enter a non-negative number.';
+    } else if (val > max) {
+      msg = `Cannot exceed ${max.toLocaleString()} kg.`;
+    }
+    mQty.setCustomValidity(msg);
+    if (qtyHelp) {
+      qtyHelp.textContent = max ? `Available from this harvest: ${max.toLocaleString()} kg (max).` : '';
+    }
+    return !msg;
+  }
+  mQty?.addEventListener('input', validateQty);
 
   document.querySelectorAll('.market-btn').forEach(btn => {
     btn.addEventListener('click', () => {
@@ -464,12 +484,21 @@ document.addEventListener('DOMContentLoaded', () => {
       mQty.value = btn.dataset.defaultQty || '';
       mImage.value = '';
       mErr.classList.add('d-none');
+      const maxQty = parseFloat(btn.dataset.defaultQty || '0') || 0;
+      mQty.max = String(maxQty);
+      // Optional: prefill with full available
+      mQty.value = maxQty ? String(maxQty) : '';
+      validateQty();
       addMarketModal.show();
     });
   });
 
   marketForm?.addEventListener('submit', async (e) => {
     e.preventDefault();
+    if (!validateQty()) {
+      mQty.reportValidity();
+      return;
+    }
     const fd = new FormData();
     fd.append('harvest_id', mHarvest.value);
     fd.append('name', mName.value.trim());

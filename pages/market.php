@@ -201,6 +201,8 @@ document.addEventListener('DOMContentLoaded', async () => {
       }
       json.data.forEach(p=>{
         const tr=document.createElement('tr');
+        // expect backend to return p.harvest_actual_kg (actual_yield_kg of linked harvest)
+        const hkg = Number(p.harvest_actual_kg||0);
         tr.innerHTML=`
           <td>${p.image_url?'<img src="'+p.image_url+'" style="height:48px;width:48px;object-fit:cover;border-radius:4px;">':'<span class="text-muted small">No image</span>'}</td>
           <td><strong>${escapeHtml(p.name)}</strong><div class="small text-muted">${escapeHtml(p.description||'')}</div></td>
@@ -211,7 +213,7 @@ document.addEventListener('DOMContentLoaded', async () => {
           <td class="small text-muted">${p.created_at}</td>
           <td class="text-end">
             <div class="btn-group btn-group-sm">
-              <button class="btn btn-outline-primary" data-action="edit" data-id="${p.product_id}">Edit</button>
+              <button class="btn btn-outline-primary" data-action="edit" data-id="${p.product_id}" data-hkg="${hkg}">Edit</button>
               <button class="btn btn-outline-warning" data-action="toggle" data-status="${p.status}" data-id="${p.product_id}">${p.status==='available'?'Mark Sold Out':'Mark Available'}</button>
               <button class="btn btn-outline-danger" data-action="delete" data-id="${p.product_id}">Remove</button>
             </div>
