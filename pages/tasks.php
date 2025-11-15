@@ -29,7 +29,7 @@ $tasksQuery = "
   LEFT JOIN field_crops fc ON ft.field_id = fc.field_id
   LEFT JOIN crops c ON fc.crop_id = c.crop_id
   GROUP BY ft.field_task_id
-  ORDER BY ft.start_date DESC, t.task_name
+  ORDER BY ft.created_at DESC, ft.field_task_id DESC
 ";
 $tasksResult = $conn->query($tasksQuery);
 $assignedTasks = [];
@@ -56,6 +56,8 @@ if ($res) {
 <!-- Leaflet -->
 <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+<!-- Font Awesome -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
 
 <style>
   body { background:#f7faf7; }
@@ -360,6 +362,58 @@ if ($res) {
   </div>
 </div>
 
+<!-- Task Confirm Modal (same look-and-feel as crops.php) -->
+<div class="modal fade" id="taskConfirmModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content border-warning" id="taskConfirmContent">
+      <div class="modal-header bg-warning text-white" id="taskConfirmHeader">
+        <h5 class="modal-title" id="taskConfirmTitle">Confirm</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body text-center">
+        <i class="fa fa-exclamation-triangle fa-3x text-warning mb-3" id="taskConfirmIcon"></i>
+        <div id="taskConfirmMessage">Are you sure?</div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-warning" id="taskConfirmBtn">Confirm</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Success Modal -->
+<div class="modal fade" id="taskSuccessModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content border-success">
+      <div class="modal-header bg-success text-white">
+        <h5 class="modal-title">Success</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body text-center">
+        <i class="fa fa-check-circle fa-3x text-success mb-3"></i>
+        <div id="taskSuccessMsg">Task updated successfully</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Error Modal -->
+<div class="modal fade" id="taskErrorModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content border-danger">
+      <div class="modal-header bg-danger text-white">
+        <h5 class="modal-title">Error</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body text-center">
+        <i class="fa fa-exclamation-circle fa-3x text-danger mb-3"></i>
+        <div id="taskErrorMsg">Operation failed</div>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script>
   let selectedTask = null;
   let selectedDate = null;
@@ -547,20 +601,105 @@ if ($res) {
       });
   }
 
-  document.getElementById('deleteTaskBtn').addEventListener('click', () => {
-    if (!confirm('Are you sure you want to delete this task?')) return;
-    updateTaskStatus('deleted');
+  function openTaskConfirm({ title='Confirm', message='Are you sure?', confirmText='Confirm', variant='warning' }) {
+    const header  = document.getElementById('taskConfirmHeader');
+    const content = document.getElementById('taskConfirmContent');
+    const iconEl  = document.getElementById('taskConfirmIcon');
+    const titleEl = document.getElementById('taskConfirmTitle');
+    const msgEl   = document.getElementById('taskConfirmMessage');
+    const btnEl   = document.getElementById('taskConfirmBtn');
+    const modalEl = document.getElementById('taskConfirmModal');
+
+    // reset classes
+    header.className = 'modal-header text-white';
+    content.className = 'modal-content';
+    btnEl.className = 'btn';
+    iconEl.className = 'fa fa-exclamation-triangle fa-3x mb-3';
+
+    // apply variant
+    if (variant === 'danger') {
+      header.classList.add('bg-danger');
+      content.classList.add('border-danger');
+      btnEl.classList.add('btn-danger');
+      iconEl.classList.add('text-danger');
+    } else if (variant === 'success') {
+      header.classList.add('bg-success');
+      content.classList.add('border-success');
+      btnEl.classList.add('btn-success');
+      iconEl.classList.add('fa-check-circle', 'text-success');
+    } else {
+      header.classList.add('bg-warning');
+      content.classList.add('border-warning');
+      btnEl.classList.add('btn-warning');
+      iconEl.classList.add('text-warning');
+    }
+
+ 
+
+    titleEl.textContent = title;
+    msgEl.textContent = message;
+    btnEl.textContent = confirmText;
+
+    return new Promise(resolve => {
+      const modal = new bootstrap.Modal(modalEl);
+      const onConfirm = () => { cleanup(); resolve(true); };
+      const onHide = () => { cleanup(); resolve(false); };
+
+      function cleanup() {
+        btnEl.removeEventListener('click', onConfirm);
+        modalEl.removeEventListener('hidden.bs.modal', onHide);
+      }
+
+      btnEl.addEventListener('click', onConfirm);
+      modalEl.addEventListener('hidden.bs.modal', onHide);
+
+      modal.show();
+    });
+  }
+
+  // Replace old confirm() handlers with modal
+  document.getElementById('deleteTaskBtn').addEventListener('click', async () => {
+    const ok = await openTaskConfirm({
+      title: 'Delete task?',
+      message: 'This will permanently delete the task.',
+      confirmText: 'Delete',
+      variant: 'danger'
+    });
+    if (ok) updateTaskStatus('deleted');
   });
 
-  document.getElementById('abandonTaskBtn').addEventListener('click', () => {
-    if (!confirm('Mark this task as abandoned?')) return;
-    updateTaskStatus('abandoned');
+  document.getElementById('abandonTaskBtn').addEventListener('click', async () => {
+    const ok = await openTaskConfirm({
+      title: 'Abandon task?',
+      message: 'This will mark the task as abandoned.',
+      confirmText: 'Abandon',
+      variant: 'danger' // was 'warning'
+    });
+    if (ok) updateTaskStatus('abandoned');
   });
 
-  document.getElementById('completeTaskBtn').addEventListener('click', () => {
-    if (!confirm('Mark this task as complete?')) return;
-    updateTaskStatus('completed');
+  document.getElementById('completeTaskBtn').addEventListener('click', async () => {
+    const ok = await openTaskConfirm({
+      title: 'Mark task complete?',
+      message: 'Mark this task as completed?',
+      confirmText: 'Complete',
+      variant: 'success'
+    });
+    if (ok) updateTaskStatus('completed');
   });
+
+  function showTaskSuccess(msg='Task updated successfully') {
+    const el = document.getElementById('taskSuccessMsg');
+    if (el) el.textContent = msg;
+    const m = new bootstrap.Modal(document.getElementById('taskSuccessModal'));
+    m.show();
+    setTimeout(()=>location.reload(),1200);
+  }
+  function showTaskError(msg='Operation failed') {
+    const el = document.getElementById('taskErrorMsg');
+    if (el) el.textContent = msg;
+    new bootstrap.Modal(document.getElementById('taskErrorModal')).show();
+  }
 
   function updateTaskStatus(status) {
     const base = window.location.origin + '/Agrilink';
@@ -577,15 +716,14 @@ if ($res) {
     .then(r => r.json())
     .then(data => {
       if (data.success) {
-        alert('Task updated successfully');
-        location.reload();
+        showTaskSuccess('Task updated successfully');
       } else {
-        alert('Error: ' + (data.error || 'Unknown error'));
+        showTaskError('Error: ' + (data.error || 'Unknown error'));
       }
     })
     .catch(err => {
       console.error('Error updating task:', err);
-      alert('Failed to update task');
+      showTaskError('Failed to update task');
     });
   }
 
@@ -599,15 +737,14 @@ if ($res) {
     .then(r => r.json())
     .then(data => {
       if (data.success) {
-        alert('Task deleted successfully');
-        location.reload();
+        showTaskSuccess('Task deleted successfully');
       } else {
-        alert('Error: ' + (data.message || 'Failed to delete task'));
+        showTaskError('Error: ' + (data.message || 'Failed to delete task'));
       }
     })
     .catch(err => {
       console.error('Error deleting task:', err);
-      alert('Failed to delete task');
+      showTaskError('Failed to delete task');
     });
   }
 

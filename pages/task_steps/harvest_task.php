@@ -1,6 +1,8 @@
 <?php
 include_once 'backend/db_connect.php';
 ?>
+<!-- Optional Font Awesome (for check icon consistency) -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
 
 <div class="main-content p-4" style="min-height: 100vh; background-color: #f8f9fa;">
   <div class="container py-5">
@@ -65,6 +67,25 @@ include_once 'backend/db_connect.php';
   </div>
 </div>
 
+<!-- Success Modal (styled like map.php) -->
+<div class="modal fade" id="harvestSuccessModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content border-success">
+      <div class="modal-header bg-success text-white">
+        <h5 class="modal-title">Harvest Saved</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body text-center">
+        <i class="fa fa-check-circle fa-3x text-success mb-3"></i>
+        <div id="harvestSuccessMsg">Harvest saved successfully!</div>
+      </div>
+      <div class="modal-footer justify-content-center">
+        <button id="goAssignFarmerBtn" type="button" class="btn btn-success px-4">Assign Farmers</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script>
 (function () {
   const base = window.location.origin + '/Agrilink';
@@ -102,36 +123,20 @@ include_once 'backend/db_connect.php';
 
   cropSelect?.addEventListener('change', () => {
     const option = cropSelect.options[cropSelect.selectedIndex];
-    if (!option || !option.value) {
-      cropDescriptionInput.value = '';
-      return;
-    }
-    cropDescriptionInput.value = option.dataset.description || '';
+    cropDescriptionInput.value = (option && option.dataset.description) ? option.dataset.description : '';
   });
 
   form?.addEventListener('submit', async (e) => {
     e.preventDefault();
 
-    if (!fieldIdInput.value) {
-      alert('Missing field. Please go back and select a field.');
-      return;
-    }
-    if (!cropSelect.value) {
-      alert('Please choose a crop to harvest.');
-      return;
-    }
-    if (!harvestDateInput.value) {
-      alert('Please set the harvest date.');
-      return;
-    }
-    if (!qualitySelect.value) {
-      alert('Please select a quality grade.');
-      return;
-    }
+    if (!fieldIdInput.value) { alert('Missing field.'); return; }
+    if (!cropSelect.value) { alert('Select a crop.'); return; }
+    if (!harvestDateInput.value) { alert('Set harvest date.'); return; }
+    if (!qualitySelect.value) { alert('Select quality grade.'); return; }
 
     const payload = {
       crop_id: Number(cropSelect.value),
-      field_id: Number(fieldIdInput.value), // NEW
+      field_id: Number(fieldIdInput.value),
       harvest_date: harvestDateInput.value,
       predicted_yield_kg: predictedYieldInput.value !== '' ? Number(predictedYieldInput.value) : null,
       actual_yield_kg: actualYieldInput.value !== '' ? Number(actualYieldInput.value) : null,
@@ -146,9 +151,7 @@ include_once 'backend/db_connect.php';
         body: JSON.stringify(payload)
       });
       const json = await res.json();
-      if (!json.success) {
-        throw new Error(json.message || 'Failed to save harvest.');
-      }
+      if (!json.success) throw new Error(json.message || 'Failed to save harvest.');
 
       localStorage.setItem('harvestTaskDetails', JSON.stringify({
         ...payload,
@@ -158,13 +161,31 @@ include_once 'backend/db_connect.php';
         cropName: cropSelect.options[cropSelect.selectedIndex]?.textContent?.trim() || ''
       }));
 
-      alert('Harvest saved successfully.');
-      window.location.href = `${base}/layout.php?page=assign_farmer`;
+      showHarvestSuccess(json.message || 'Harvest saved successfully!');
     } catch (err) {
       console.error('Save harvest failed:', err);
-      alert(err.message || 'Unable to save harvest. Please try again.');
+      alert(err.message || 'Unable to save harvest.');
     }
   });
+
+  function showHarvestSuccess(message) {
+    const msgEl = document.getElementById('harvestSuccessMsg');
+    if (msgEl) msgEl.textContent = message;
+    const modalEl = document.getElementById('harvestSuccessModal');
+    const modal = new bootstrap.Modal(modalEl);
+    modal.show();
+
+    document.getElementById('goAssignFarmerBtn')?.addEventListener('click', () => {
+      window.location.href = `${base}/layout.php?page=assign_farmer`;
+    });
+
+    // Auto-redirect after 4s if still open
+    setTimeout(() => {
+      if (modalEl.classList.contains('show')) {
+        window.location.href = `${base}/layout.php?page=assign_farmer`;
+      }
+    }, 4000);
+  }
 
   async function init() {
     const preferredFieldId = (savedDetails?.fieldId || '').toString();
@@ -172,12 +193,8 @@ include_once 'backend/db_connect.php';
       ? selectedFields.find(f => f.id === preferredFieldId)
       : null;
 
-    if (!activeField) {
-      activeField = selectedFields[0];
-    }
-    if (!activeField) {
-      throw new Error('No field information available.');
-    }
+    if (!activeField) activeField = selectedFields[0];
+    if (!activeField) throw new Error('No field information.');
 
     fieldIdInput.value = activeField.id;
     fieldNameDisplay.value = activeField.name || `Field #${activeField.id}`;
@@ -187,8 +204,6 @@ include_once 'backend/db_connect.php';
   }
 
   async function loadFieldCrops(fieldId, preferredCropId = null) {
-    if (!cropSelect) return;
-
     cropSelect.disabled = true;
     cropSelect.innerHTML = '<option value="">Loading crops...</option>';
     cropDescriptionInput.value = '';
@@ -199,7 +214,15 @@ include_once 'backend/db_connect.php';
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ field_id: Number(fieldId) })
       });
-      const json = await res.json();
+
+      // Handle non-OK or non-JSON responses safely
+      if (!res.ok) {
+        const txt = await res.text();
+        throw new Error(txt || res.statusText);
+      }
+      const ct = res.headers.get('content-type') || '';
+      const json = ct.includes('application/json') ? await res.json() : { success:false, message:'Invalid response' };
+
       const crops = Array.isArray(json.data) ? json.data : [];
 
       if (json.field) {
@@ -207,7 +230,7 @@ include_once 'backend/db_connect.php';
       }
 
       if (!crops.length) {
-        cropSelect.innerHTML = '<option value="">No crops linked to this field yet</option>';
+        cropSelect.innerHTML = '<option value="">No crops linked to this field</option>';
         return;
       }
 
@@ -227,19 +250,17 @@ include_once 'backend/db_connect.php';
       cropSelect.disabled = false;
       cropSelect.dispatchEvent(new Event('change'));
     } catch (err) {
-      console.error('Failed to load crops for field:', err);
+      console.error('Failed to load crops:', err);
       cropSelect.innerHTML = '<option value="">Unable to load crops</option>';
     }
   }
 
   function applySavedDetails(details) {
     if (!details) return;
-
     if (cropSelect && details.crop_id) {
       cropSelect.value = details.crop_id;
       cropSelect.dispatchEvent(new Event('change'));
     }
-
     harvestDateInput && (harvestDateInput.value = details.harvest_date || harvestDateInput.value);
     predictedYieldInput && (predictedYieldInput.value = details.predicted_yield_kg ?? '');
     actualYieldInput && (actualYieldInput.value = details.actual_yield_kg ?? '');
@@ -253,7 +274,6 @@ include_once 'backend/db_connect.php';
       normalizeIsoString(localStorage.getItem('taskHarvestDate')) ||
       normalizeIsoString(localStorage.getItem('taskScheduledDate')) ||
       normalizeIsoString(localStorage.getItem('selectedTaskDate'));
-
     return stored || '';
   }
 
@@ -262,9 +282,9 @@ include_once 'backend/db_connect.php';
     return raw
       .map(item => {
         if (typeof item === 'object' && item) {
-          const id = item.field_id ?? item.fieldId ?? item.id;
-          if (!id) return null;
-          return { id: String(id), name: item.name ?? item.field_name ?? '' };
+            const id = item.field_id ?? item.fieldId ?? item.id;
+            if (!id) return null;
+            return { id: String(id), name: item.name ?? item.field_name ?? '' };
         }
         const id = String(item).trim();
         return id ? { id, name: '' } : null;
@@ -281,11 +301,7 @@ include_once 'backend/db_connect.php';
   }
 
   function safeParse(value) {
-    try {
-      return value ? JSON.parse(value) : null;
-    } catch {
-      return null;
-    }
+    try { return value ? JSON.parse(value) : null; } catch { return null; }
   }
 
   function redirectToTasks() {

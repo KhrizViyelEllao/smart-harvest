@@ -1,19 +1,16 @@
 <?php
-// Remove/disable the redirect block; do not call header() here
-$roles = ['farm_owner','farmer','admin'];
-if (session_status() === PHP_SESSION_ACTIVE) {
-  // $role = $_SESSION['role'] ?? '';
-  // if (!isset($_SESSION['user_id']) || !in_array($role, $roles, true)) {
-  //   header('Location: /Agrilink/index.php?auth=denied');
-  //   exit;
-  // }
-}
+// Authorization disabled for this page
 require_once __DIR__ . '/../backend/db_connect.php';
 ?>
 <div class="container py-4">
   <div class="d-flex justify-content-between align-items-center mb-3">
     <h4 class="mb-0 text-success"><i class="bi bi-shop-window me-2"></i>Market & Engagement</h4>
-    <small class="text-muted">Manage products, orders & finances</small>
+    <div class="d-flex align-items-center gap-2">
+      <small class="text-muted">Manage products, orders & finances</small>
+      <button id="refreshBtn" class="btn btn-outline-success btn-sm">
+        <i class="bi bi-arrow-clockwise me-1"></i> Refresh
+      </button>
+    </div>
   </div>
 
   <ul class="nav nav-tabs mb-3" id="marketTabs" role="tablist">
@@ -41,6 +38,7 @@ require_once __DIR__ . '/../backend/db_connect.php';
                   <th>Product</th>
                   <th>Crop / Field</th>
                   <th>Price/kg</th>
+                  <th>Quality</th> <!-- ADDED -->
                   <th>Available (kg)</th>
                   <th>Status</th>
                   <th>Created</th>
@@ -142,6 +140,10 @@ require_once __DIR__ . '/../backend/db_connect.php';
           <label class="form-label">Available Qty (kg)</label>
           <input type="number" step="0.01" min="0" id="editQty" class="form-control" required>
         </div>
+        <div class="mb-3">
+          <label class="form-label">Quality</label>
+          <input type="text" id="editQuality" class="form-control" placeholder="e.g. Grade A, Premium">
+        </div>
       </div>
       <div class="modal-footer">
         <button class="btn btn-secondary" type="button" data-bs-dismiss="modal">Cancel</button>
@@ -151,28 +153,67 @@ require_once __DIR__ . '/../backend/db_connect.php';
   </div>
 </div>
 
+<!-- Confirm Modal -->
+<div class="modal fade" id="marketConfirmModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content border-warning" id="marketConfirmContent">
+      <div class="modal-header bg-warning text-white" id="marketConfirmHeader">
+        <h5 class="modal-title" id="marketConfirmTitle">Confirm</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body text-center">
+        <i class="fa fa-exclamation-triangle fa-3x text-warning mb-3" id="marketConfirmIcon"></i>
+        <div id="marketConfirmMessage">Are you sure?</div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline-secondary" type="button" data-bs-dismiss="modal">Cancel</button>
+        <button class="btn btn-warning" type="button" id="marketConfirmBtn">Confirm</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Success Modal -->
+<div class="modal fade" id="marketSuccessModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content border-success">
+      <div class="modal-header bg-success text-white">
+        <h5 class="modal-title">Success</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body text-center">
+        <i class="fa fa-check-circle fa-3x text-success mb-3"></i>
+        <div id="marketSuccessMsg">Action completed</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Error Modal -->
+<div class="modal fade" id="marketErrorModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content border-danger">
+      <div class="modal-header bg-danger text-white">
+        <h5 class="modal-title">Error</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body text-center">
+        <i class="fa fa-exclamation-circle fa-3x text-danger mb-3"></i>
+        <div id="marketErrorMsg">Operation failed</div>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script>
 document.addEventListener('DOMContentLoaded', async () => {
   const base = location.origin + '/Agrilink';
-  const allowed = new Set(['farm_owner','farmer','admin']);
 
-  // Client-side guard (does not require server headers)
-  try {
-    const res = await fetch(base + '/backend/auth/me.php', {cache:'no-store'});
-    const me = await res.json();
-    if (!me.success || !allowed.has(me.role)) {
-      location.href = base + '/index.php?auth=denied';
-      return;
-    }
-  } catch (_) {
-    location.href = base + '/index.php?auth=denied';
-    return;
-  }
-
-  // Heartbeat every 5 minutes to refresh session cookie
-  setInterval(() => {
-    fetch(base + '/backend/auth/me.php', {cache:'no-store'}).catch(()=>{});
-  }, 5 * 60 * 1000);
+  // Removed all auth checks and heartbeat
+  // const allowed = new Set(['farm_owner','farmer','admin','seller']);
+  // async function requireAuth() { ... }
+  // if (!(await requireAuth())) return;
+  // setInterval(async () => { ... }, 5 * 60 * 1000);
 
   const productsBody = document.querySelector('#productsTable tbody');
   const editModal = new bootstrap.Modal(document.getElementById('editProductModal'));
@@ -187,8 +228,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   function fmt(n){ return Number(n||0).toFixed(2); }
   function escapeHtml(str){return (str||'').replace(/[&<>"']/g,s=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[s]));}
   function orderBadge(s){
-    const map={pending:'warning',confirmed:'primary',completed:'success',cancelled:'secondary'};
-    return `<span class="badge bg-${map[s]||'secondary'}">${s}</span>`;
+    const map={pending:'info',confirmed:'primary',completed:'success',cancelled:'secondary'};
+    return `<span class="badge bg-${map[s]||'secondary'} text-dark">${s}</span>`;
   }
 
   async function loadProducts(){
@@ -208,12 +249,24 @@ document.addEventListener('DOMContentLoaded', async () => {
           <td><strong>${escapeHtml(p.name)}</strong><div class="small text-muted">${escapeHtml(p.description||'')}</div></td>
           <td><div>${escapeHtml(p.crop_name||'—')}</div><div class="small text-muted">${escapeHtml(p.field_name||'—')}</div></td>
           <td>₱${fmt(p.price_per_kg)}</td>
+          <td>${
+          (p.quality
+            ? `<span class="badge ${
+                p.quality==='high'?'bg-success':
+                p.quality==='medium'?'bg-warning text-dark':
+                'bg-danger'
+              }">${escapeHtml(p.quality)}</span>`
+            : '—')
+        }</td>
           <td>${fmt(p.available_qty)}</td>
           <td><span class="badge bg-${p.status==='available'?'success':'secondary'}">${p.status}</span></td>
           <td class="small text-muted">${p.created_at}</td>
           <td class="text-end">
             <div class="btn-group btn-group-sm">
-              <button class="btn btn-outline-primary" data-action="edit" data-id="${p.product_id}" data-hkg="${hkg}">Edit</button>
+              <button class="btn btn-outline-primary" data-action="edit"
+                      data-id="${p.product_id}"
+                      data-quality="${escapeHtml(p.quality||'')}"
+                      data-hkg="${hkg}">Edit</button>
               <button class="btn btn-outline-warning" data-action="toggle" data-status="${p.status}" data-id="${p.product_id}">${p.status==='available'?'Mark Sold Out':'Mark Available'}</button>
               <button class="btn btn-outline-danger" data-action="delete" data-id="${p.product_id}">Remove</button>
             </div>
@@ -318,37 +371,128 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   }
 
+  // Modal helpers (avoid overlapping)
+  function hideOpenModals(exceptId = null) {
+    document.querySelectorAll('.modal.show').forEach(m => {
+      if (exceptId && m.id === exceptId) return;
+      (bootstrap.Modal.getInstance(m) || new bootstrap.Modal(m)).hide();
+    });
+    setTimeout(() => {
+      document.querySelectorAll('.modal-backdrop').forEach(b => b.remove());
+      document.body.classList.remove('modal-open');
+      document.body.style.removeProperty('padding-right');
+    }, 200);
+  }
+  function openMarketConfirm({ title='Confirm', message='Are you sure?', confirmText='Confirm', variant='info' }) {
+    const header  = document.getElementById('marketConfirmHeader');
+    const content = document.getElementById('marketConfirmContent');
+    const iconEl  = document.getElementById('marketConfirmIcon');
+    const titleEl = document.getElementById('marketConfirmTitle');
+    const msgEl   = document.getElementById('marketConfirmMessage');
+    const btnEl   = document.getElementById('marketConfirmBtn');
+    const modalEl = document.getElementById('marketConfirmModal');
+
+    header.className  = 'modal-header';
+    content.className = 'modal-content';
+    btnEl.className   = 'btn';
+    iconEl.className  = 'fa fa-circle-info fa-3x mb-3 text-info';
+
+    if (variant === 'danger') {
+      header.classList.add('bg-danger','text-white');
+      content.classList.add('border-danger');
+      btnEl.classList.add('btn-danger');
+      iconEl.className = 'fa fa-triangle-exclamation fa-3x mb-3 text-danger';
+    } else if (variant === 'success') {
+      header.classList.add('bg-success','text-white');
+      content.classList.add('border-success');
+      btnEl.classList.add('btn-success');
+      iconEl.className = 'fa fa-circle-check fa-3x mb-3 text-success';
+    } else {
+      header.classList.add('bg-info','text-dark');
+      content.classList.add('border-info');
+      btnEl.classList.add('btn-info','text-white');
+      iconEl.className = 'fa fa-circle-info fa-3x mb-3 text-info';
+    }
+
+    titleEl.textContent = title;
+    msgEl.textContent   = message;
+    btnEl.textContent   = confirmText;
+
+    return new Promise(resolve => {
+      hideOpenModals('marketConfirmModal');
+      const modal = new bootstrap.Modal(modalEl);
+      let confirmed = false;
+
+      function onConfirm() { confirmed = true; cleanup(); modal.hide(); resolve(true); }
+      function onHidden()  { cleanup(); if (!confirmed) resolve(false); }
+      function cleanup() {
+        btnEl.removeEventListener('click', onConfirm);
+        modalEl.removeEventListener('hidden.bs.modal', onHidden);
+      }
+
+      btnEl.addEventListener('click', onConfirm);
+      modalEl.addEventListener('hidden.bs.modal', onHidden);
+      modal.show();
+    });
+  }
+  function showMarketSuccess(msg='Action completed') {
+    const el = document.getElementById('marketSuccessMsg');
+    if (el) el.textContent = msg;
+    hideOpenModals('marketSuccessModal');
+    new bootstrap.Modal(document.getElementById('marketSuccessModal')).show();
+  }
+  function showMarketError(msg='Operation failed') {
+    const el = document.getElementById('marketErrorMsg');
+    if (el) el.textContent = msg;
+    hideOpenModals('marketErrorModal');
+    new bootstrap.Modal(document.getElementById('marketErrorModal')).show();
+  }
+
   // Product actions
   productsBody.addEventListener('click', async e=>{
     const btn=e.target.closest('button[data-action]');
     if(!btn) return;
     const id=Number(btn.dataset.id);
     const act=btn.dataset.action;
+
     if(act==='toggle'){
       const newStatus = btn.dataset.status==='available' ? 'sold_out':'available';
-      const r=await fetch(base+'/backend/api/products/status.php',{
-        method:'POST',headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({product_id:id,status:newStatus})
-      });
-      const j=await r.json();
-      if(!j.success) return alert(j.message||'Failed');
-      loadProducts();
+      try{
+        const r=await fetch(base+'/backend/api/products/status.php',{
+          method:'POST',headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({product_id:id,status:newStatus})
+        });
+        const j=await r.json();
+        if(!j.success) return showMarketError(j.message||'Failed to update status');
+        showMarketSuccess('Status updated');
+        await loadProducts();
+      }catch(err){ showMarketError('Failed to update status'); }
     } else if(act==='delete'){
-      if(!confirm('Remove product?')) return;
-      const r=await fetch(base+'/backend/api/products/delete.php',{
-        method:'DELETE',headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({product_id:id})
+      const ok = await openMarketConfirm({
+        title: 'Remove product?',
+        message: 'This will permanently remove the product.',
+        confirmText: 'Remove',
+        variant: 'danger'
       });
-      const j=await r.json();
-      if(!j.success) return alert(j.message||'Failed');
-      loadProducts();
+      if(!ok) return;
+      try{
+        const r=await fetch(base+'/backend/api/products/delete.php',{
+          method:'DELETE',headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({product_id:id})
+        });
+        const j=await r.json();
+        if(!j.success) return showMarketError(j.message||'Failed to remove product');
+        showMarketSuccess('Product removed');
+        await loadProducts();
+      }catch(err){ showMarketError('Failed to remove product'); }
     } else if(act==='edit'){
       const row=btn.closest('tr');
       editProductId.value=id;
       editName.value=row.querySelector('td:nth-child(2) strong').textContent.trim();
       editDescription.value=row.querySelector('td:nth-child(2) .small').textContent.trim();
       editPrice.value=row.querySelector('td:nth-child(4)').textContent.replace(/[^0-9.]/g,'');
-      editQty.value=row.querySelector('td:nth-child(5)').textContent;
+      document.getElementById('editQuality').value = btn.dataset.quality || '';
+      editQty.value=row.querySelector('td:nth-child(6)').textContent;
       editModal.show();
     }
   });
@@ -360,16 +504,20 @@ document.addEventListener('DOMContentLoaded', async () => {
       name:editName.value.trim(),
       description:editDescription.value.trim(),
       price_per_kg:editPrice.value,
-      available_qty:editQty.value
+      available_qty:editQty.value,
+      quality:document.getElementById('editQuality').value.trim()
     };
-    const r=await fetch(base+'/backend/api/products/update.php',{
-      method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify(payload)
-    });
-    const j=await r.json();
-    if(!j.success) return alert(j.message||'Failed');
-    editModal.hide();
-    loadProducts();
+    try{
+      const r=await fetch(base+'/backend/api/products/update.php',{
+        method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify(payload)
+      });
+      const j=await r.json();
+      if(!j.success) return showMarketError(j.message||'Failed to update product');
+      editModal.hide();
+      showMarketSuccess('Product updated');
+      await loadProducts();
+    }catch(err){ showMarketError('Failed to update product'); }
   });
 
   // Order actions
@@ -378,18 +526,46 @@ document.addEventListener('DOMContentLoaded', async () => {
     if(!btn) return;
     const id=Number(btn.dataset.id);
     const next=btn.dataset.next;
-    if(!confirm('Set order #'+id+' to '+next+'?')) return;
-    const r=await fetch(base+'/backend/api/orders/update_status.php',{
-      method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({order_id:id,status:next})
+
+    const variant = next==='cancelled' ? 'danger' : (next==='completed' ? 'success' : 'info');
+    const ok = await openMarketConfirm({
+      title: 'Update order status?',
+      message: `Set order #${id} to ${next}?`,
+      confirmText: 'Update',
+      variant
     });
-    const j=await r.json();
-    if(!j.success) return alert(j.message||'Failed');
-    loadOrders();
-    loadFinance();
+    if(!ok) return;
+
+    try{
+      const r=await fetch(base+'/backend/api/orders/update_status.php',{
+        method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({order_id:id,status:next})
+      });
+      const j=await r.json();
+      if(!j.success) return showMarketError(j.message||'Failed to update order');
+      showMarketSuccess('Order updated');
+      await loadOrders();
+      await loadFinance();
+    }catch(err){ showMarketError('Failed to update order'); }
   });
 
   statusFilter.addEventListener('change', loadOrders);
+
+  const refreshBtn = document.getElementById('refreshBtn');
+  if (refreshBtn) {
+    refreshBtn.addEventListener('click', async () => {
+      const original = refreshBtn.innerHTML;
+      refreshBtn.disabled = true;
+      refreshBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Refreshing...';
+      try {
+        await loadOrders();
+        await loadFinance();
+      } finally {
+        refreshBtn.disabled = false;
+        refreshBtn.innerHTML = original;
+      }
+    });
+  }
 
   // Tab triggers
   document.getElementById('marketTabs').addEventListener('click', e=>{

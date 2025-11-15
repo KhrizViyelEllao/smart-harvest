@@ -1,6 +1,7 @@
 <?php
+
 // filepath: c:\xampp\htdocs\Agrilink\includes\consumer_nav.php
-// Requires $base = '/Agrilink/pages' and $active = 'shop'|'orders'|'profile'
+// Requires $base = '/Agrilink/pages' and $active = 'shop'|'orders'|'profile'|'cart'
 if (!isset($base))  $base = '/Agrilink/pages';
 if (!isset($active)) $active = '';
 ?>
@@ -22,6 +23,12 @@ if (!isset($active)) $active = '';
         <li class="nav-item">
           <a class="nav-link <?php echo $active==='orders'?'active':''; ?>" href="<?php echo $base; ?>/order_history.php">
             <i class="fa-solid fa-receipt me-1"></i>Orders
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link <?php echo $active==='cart'?'active':''; ?>" href="<?php echo $base; ?>/cart.php">
+            <i class="fa-solid fa-cart-shopping me-1"></i>Cart
+            <span id="cartCount" class="badge rounded-pill bg-info text-dark ms-1">0</span>
           </a>
         </li>
         <li class="nav-item">

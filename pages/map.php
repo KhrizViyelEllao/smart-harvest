@@ -81,6 +81,22 @@ body {
   </div>
 </div>
 
+<!-- Success Modal -->
+<div class="modal fade" id="successModal" tabindex="-1" aria-labelledby="successModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content border-success">
+      <div class="modal-header bg-success text-white">
+        <h5 class="modal-title" id="successModalLabel">Field Saved</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body text-center">
+        <i class="fa fa-check-circle fa-3x text-success mb-3"></i>
+        <div id="successMsg">Field saved successfully!</div>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- LEAFLET + BOOTSTRAP SCRIPTS -->
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
@@ -265,48 +281,46 @@ async function loadFields(map) {
 
 // ✅ Save new field
 async function saveField() {
-  const data = {
-    name: document.getElementById("field_name").value,
-    area: document.getElementById("field_area").value,
-    perimeter: document.getElementById("field_perimeter").value,
-    type: document.getElementById("field_type").value,
-    notes: document.getElementById("field_notes").value,
-    geometry: document.getElementById("field_geometry").value
+  const payload = {
+    name: document.getElementById("field_name")?.value || '',
+    area: document.getElementById("field_area")?.value || '',
+    perimeter: document.getElementById("field_perimeter")?.value || '',
+    type: document.getElementById("field_type")?.value || '',
+    notes: document.getElementById("field_notes")?.value || '',
+    geometry: document.getElementById("field_geometry")?.value || ''
   };
 
   try {
-    const url = window.location.origin + '/Agrilink/backend/api/map/save_field.php';
+    const url = `${window.location.origin}/Agrilink/backend/api/map/save_field.php`;
     const res = await fetch(url, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(data)
+      body: JSON.stringify(payload)
     });
 
-    if (!res.ok) {
-      const txt = await res.text();
-      throw new Error(txt || res.statusText);
-    }
-
+    if (!res.ok) throw new Error(await res.text() || res.statusText);
     const ct = res.headers.get('content-type') || '';
-    let result = ct.includes('application/json') ? await res.json() : await res.text();
+    const result = ct.includes('application/json') ? await res.json() : { message: await res.text() };
 
-    alert(result.message ?? JSON.stringify(result));
-
-    // Close modal
-    const modalEl = document.getElementById('fieldModal');
-    const modalInstance = bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);
-    modalInstance.hide();
-
-    // Reload map data
-    await loadFields(window.myMap);
-
-    // Focus back to last drawn polygon
-    if (window.lastDrawnLayer) {
-      window.myMap.fitBounds(window.lastDrawnLayer.getBounds());
-      window.lastDrawnLayer = null;
+    // Hide the edit/add modal if present
+    const fieldModalEl = document.getElementById('fieldModal');
+    if (fieldModalEl) {
+      const inst = bootstrap.Modal.getInstance(fieldModalEl) || new bootstrap.Modal(fieldModalEl);
+      inst.hide();
     }
 
+    // Show success modal
+    const msgEl = document.getElementById('successMsg');
+    if (msgEl) msgEl.textContent = result.message || 'Field saved successfully!';
+    const successModal = new bootstrap.Modal(document.getElementById('successModal'));
+    successModal.show();
+
+    // Refresh fields on the map
+    if (typeof loadFields === 'function') {
+      await loadFields(window.myMap || null);
+    }
   } catch (err) {
+    console.error(err);
     alert("Error saving field: " + err.message);
   }
 }

@@ -2,29 +2,29 @@ Array
 (
     [farmer_ids] => Array
         (
-            [0] => 1
+            [0] => 3
         )
 
     [fields] => Array
         (
-            [0] => 15
+            [0] => 28
         )
 
     [task] => {"id":"3","name":"Harvest"}
     [task_type] => harvest
     [details] => Array
         (
-            [crop_id] => 23
-            [field_id] => 15
-            [harvest_date] => 2025-12-01
-            [predicted_yield_kg] => 200
+            [crop_id] => 47
+            [field_id] => 28
+            [harvest_date] => 2025-12-18
+            [predicted_yield_kg] => 120
             [actual_yield_kg] => 
-            [quality] => medium
-            [notes] => Bumagyo
-            [harvest_id] => 16
-            [fieldId] => 15
-            [fieldName] => Aloe Vera
-            [cropName] => Rice
+            [quality] => high
+            [notes] => High quality crop
+            [harvest_id] => 25
+            [fieldId] => 28
+            [fieldName] => Watermelon Field
+            [cropName] => Watermelon
         )
 
 )
