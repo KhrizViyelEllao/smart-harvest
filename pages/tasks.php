@@ -233,7 +233,11 @@ if ($res) {
             $tid = (int)$t['task_id'];
           ?>
             <div class="col-6 col-md-4 col-lg-3">
-              <div class="task-card" data-taskid="<?= $tid ?>" data-taskname="<?= $name ?>" onclick="chooseTask(this)">
+              <div class="task-card"
+                   data-taskid="<?= $tid ?>"
+                   data-taskname="<?= $name ?>"
+                   data-taskcategory="<?= htmlspecialchars(strtolower($t['category'] ?? '')) ?>"
+                   onclick="chooseTask(this)">
                 <div class="task-icon"><?= htmlspecialchars($icon) ?></div>
                 <div class="task-name"><?= $name ?></div>
                 <?php if (!empty($desc)): ?>
@@ -435,9 +439,26 @@ if ($res) {
   }
 
   function chooseTask(el) {
-    const taskId = el.getAttribute('data-taskid');
-    const taskName = el.getAttribute('data-taskname');
+    const taskId   = el.getAttribute('data-taskid');
+    const taskName = el.getAttribute('data-taskname') || '';
+    const category = (el.getAttribute('data-taskcategory') || '').toLowerCase();
     selectedTask = { id: taskId, name: taskName };
+
+    const baseLayout = window.location.origin + '/Agrilink/layout.php?page=';
+
+    // If planting task, skip stepper entirely and go straight to crops page.
+    if (category === 'planting' || taskName.toLowerCase().includes('plant')) {
+      localStorage.setItem('selectedTask', JSON.stringify(selectedTask));
+      localStorage.removeItem('selectedDate');
+      localStorage.removeItem('selectedTime');
+      localStorage.removeItem('selectedNotes');
+      localStorage.removeItem('selectedFields');
+      localStorage.removeItem('selectedFieldId');
+      localStorage.setItem('taskType', 'planting');
+      window.location.href = baseLayout + 'crops';
+      return;
+    }
+
     document.getElementById('selectedTaskName').textContent = taskName;
     goToStep(2);
   }
@@ -506,6 +527,11 @@ if ($res) {
   function continueToNext() {
     selectedTime = document.getElementById('selectedTime').value;
     selectedNotes = document.getElementById('taskNotes').value || '';
+
+    // persist chosen schedule for the assign step + API
+    localStorage.setItem('taskEndDate', selectedDate || '');
+    localStorage.setItem('taskEndTime', selectedTime || '');
+
     goToStep(3);
   }
 
@@ -547,16 +573,20 @@ if ($res) {
           localStorage.setItem('selectedDate', selectedDate);
           localStorage.setItem('selectedTime', selectedTime);
           localStorage.setItem('selectedNotes', selectedNotes);
+          localStorage.setItem('taskEndDate', selectedDate || '');
+          localStorage.setItem('taskEndTime', selectedTime || '');
 
           const base = window.location.origin + '/Agrilink/layout.php?page=';
           const taskName = (selectedTask?.name || '').toLowerCase();
           let nextPage = base + 'assign_farmer';
 
           if (taskName.includes('clean')) nextPage = base + 'cleaning_task';
-          else if (taskName.includes('plant')) nextPage = base + 'planting_task';
+          else if (taskName.includes('plant')) nextPage = base + 'crops';
           else if (taskName.includes('fertiliz')) nextPage = base + 'fertilizing_task';
           else if (taskName.includes('harvest')) nextPage = base + 'harvest_task';
           else if (taskName.includes('pest')) nextPage = base + 'pest_control';
+          else if (taskName.includes('irrig')) nextPage = base + 'irrigation_task';
+          else if (taskName.includes('soil')) nextPage = base + 'soil_sampling_task';
 
           localStorage.setItem('taskType', taskName);
           window.location.href = nextPage;

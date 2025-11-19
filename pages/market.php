@@ -450,55 +450,88 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Product actions
   productsBody.addEventListener('click', async e=>{
-    const btn=e.target.closest('button[data-action]');
-    if(!btn) return;
-    const id=Number(btn.dataset.id);
-    const act=btn.dataset.action;
+    const btn = e.target.closest('button[data-action]');
+    if (!btn) return;
+    const id  = Number(btn.dataset.id);
+    const act = btn.dataset.action;
+    const row = btn.closest('tr');
+    const productName = row?.querySelector('td:nth-child(2) strong')?.textContent.trim() || 'this product';
 
-    if(act==='toggle'){
-      const newStatus = btn.dataset.status==='available' ? 'sold_out':'available';
-      try{
-        const r=await fetch(base+'/backend/api/products/status.php',{
-          method:'POST',headers:{'Content-Type':'application/json'},
-          body:JSON.stringify({product_id:id,status:newStatus})
+    if (act === 'edit') {
+      editProductId.value = id;
+      editName.value = row.querySelector('td:nth-child(2) strong').textContent.trim();
+      editDescription.value = row.querySelector('td:nth-child(2) .small').textContent.trim();
+      editPrice.value = row.querySelector('td:nth-child(4)').textContent.replace(/[^0-9.]/g, '');
+      document.getElementById('editQuality').value = btn.dataset.quality || '';
+      editQty.value = row.querySelector('td:nth-child(6)').textContent;
+
+      editForm.dataset.hkg = String(btn.dataset.hkg || '0');
+      const qtyLabel = editForm.querySelector('label[for="editQty"]') || editForm.querySelector('.form-label:has(+ #editQty)');
+      if (qtyLabel) qtyLabel.innerHTML = 'Available Qty (kg) <small class="text-muted">(max ' + (btn.dataset.hkg || '0') + ' kg)</small>';
+
+      editModal.show();
+      return;
+    }
+
+    if (act === 'toggle') {
+      const currentStatus = btn.dataset.status === 'sold_out' ? 'sold_out' : 'available';
+      const nextStatus = currentStatus === 'available' ? 'sold_out' : 'available';
+      const ok = await openMarketConfirm({
+        title: nextStatus === 'sold_out' ? 'Mark as Sold Out?' : 'Mark as Available?',
+        message: `${productName} will be marked ${nextStatus.replace('_', ' ')}.`,
+        confirmText: 'Update',
+        variant: nextStatus === 'sold_out' ? 'info' : 'success'
+      });
+      if (!ok) return;
+
+      try {
+        const r = await fetch(base + '/backend/api/products/update.php', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ product_id: id, status: nextStatus })
         });
-        const j=await r.json();
-        if(!j.success) return showMarketError(j.message||'Failed to update status');
-        showMarketSuccess('Status updated');
+        const j = await r.json();
+        if (!j.success) return showMarketError(j.message || 'Failed to update product status');
+        showMarketSuccess('Product status updated');
         await loadProducts();
-      }catch(err){ showMarketError('Failed to update status'); }
-    } else if(act==='delete'){
+      } catch (err) {
+        showMarketError('Failed to update product status');
+      }
+      return;
+    }
+
+    if (act === 'delete') {
       const ok = await openMarketConfirm({
         title: 'Remove product?',
-        message: 'This will permanently remove the product.',
-        confirmText: 'Remove',
+        message: `Delete ${productName}? This action cannot be undone.`,
+        confirmText: 'Delete',
         variant: 'danger'
       });
-      if(!ok) return;
-      try{
-        const r=await fetch(base+'/backend/api/products/delete.php',{
-          method:'DELETE',headers:{'Content-Type':'application/json'},
-          body:JSON.stringify({product_id:id})
+      if (!ok) return;
+
+      try {
+        const r = await fetch(base + '/backend/api/products/delete.php', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ product_id: id })
         });
-        const j=await r.json();
-        if(!j.success) return showMarketError(j.message||'Failed to remove product');
+        const j = await r.json();
+        if (!j.success) return showMarketError(j.message || 'Failed to remove product');
         showMarketSuccess('Product removed');
         await loadProducts();
-      }catch(err){ showMarketError('Failed to remove product'); }
-    } else if(act==='edit'){
-      const row=btn.closest('tr');
-      editProductId.value=id;
-      editName.value=row.querySelector('td:nth-child(2) strong').textContent.trim();
-      editDescription.value=row.querySelector('td:nth-child(2) .small').textContent.trim();
-      editPrice.value=row.querySelector('td:nth-child(4)').textContent.replace(/[^0-9.]/g,'');
-      document.getElementById('editQuality').value = btn.dataset.quality || '';
-      editQty.value=row.querySelector('td:nth-child(6)').textContent;
-      editModal.show();
+      } catch (err) {
+        showMarketError('Failed to remove product');
+      }
     }
   });
 
   editForm.addEventListener('submit', async e=>{
     e.preventDefault();
+    const maxHkg = parseFloat(editForm.dataset.hkg || '0') || 0;
+    const newAvail = parseFloat(editQty.value || '0') || 0;
+    if (maxHkg > 0 && newAvail > maxHkg) {
+      return showMarketError('Available quantity ('+newAvail+' kg) cannot exceed recorded harvest actual ('+maxHkg+' kg).');
+    }
     const payload={
       product_id:Number(editProductId.value),
       name:editName.value.trim(),
@@ -558,6 +591,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       refreshBtn.disabled = true;
       refreshBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Refreshing...';
       try {
+        await loadProducts();
         await loadOrders();
         await loadFinance();
       } finally {

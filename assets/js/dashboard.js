@@ -36,8 +36,6 @@ function loadCropOverview() {
         .catch(err => console.error("Error loading crops:", err));
 }
 
-
-
 // assets/js/dashboard.js
 function dashboardInit() {
     console.log("✅ dashboardInit() is running — dashboard.js loaded correctly.");
@@ -59,3 +57,7 @@ function dashboardInit() {
         `;
     }
 }
+
+document.addEventListener('DOMContentLoaded',()=>{
+  if(typeof loadActivities==='function'){ loadActivities(); }
+});

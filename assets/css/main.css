@@ -1,0 +1,2 @@
+.notification-dropdown .dropdown-menu{display:none;min-width:18rem;}
+.notification-dropdown .dropdown-menu.show{display:block;}

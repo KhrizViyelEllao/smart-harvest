@@ -89,19 +89,29 @@ document.getElementById('assignFarmerForm').addEventListener('submit', async (e)
     taskDetails = JSON.parse(localStorage.getItem('pestcontrolTaskDetails') || '{}');
   } else if (taskType.includes('planting')) {
     taskDetails = JSON.parse(localStorage.getItem('plantingTaskDetails') || '{}');
-  }
+  } else if (taskType.includes('irrigation')) {
+    taskDetails = JSON.parse(localStorage.getItem('irrigationTaskDetails') || '{}');
+  } else if (taskType.includes('soil_sampling')) {
+    taskDetails = JSON.parse(localStorage.getItem('soilsamplingTaskDetails') || '{}');
+  } 
+
+  const selectedFarmers = selected;
+
+  const payload = {
+    farmer_ids: selectedFarmers,
+    fields: selectedFields,
+    task: localStorage.getItem('selectedTask'),
+    details: taskDetails,
+    notes: localStorage.getItem('selectedNotes') || '',
+    end_date: localStorage.getItem('taskEndDate') || '',
+    end_time: localStorage.getItem('taskEndTime') || ''
+  };
 
   try {
     const res = await fetch('/Agrilink/backend/api/save_field_task.php', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        farmer_ids: selected,
-        fields: selectedFields,
-        task: selectedTask,
-        task_type: taskType,
-        details: taskDetails
-      })
+      body: JSON.stringify(payload)
     });
 
     if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);

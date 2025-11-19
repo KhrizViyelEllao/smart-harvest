@@ -19,19 +19,13 @@ $farmer_ids = $data['farmer_ids'];
 $fields = $data['fields'];
 $details = json_encode($data['details'], JSON_UNESCAPED_UNICODE);
 
-// ✅ Get date, time, and notes from request
-$start_date = $data['start_date'] ?? null;
-$start_time = $data['start_time'] ?? null;
-$notes = $data['notes'] ?? null;
+// pull scheduled date/time coming from step 2
+$end_date_raw = $data['end_date'] ?? $data['start_date'] ?? null;
+$end_time_raw = $data['end_time'] ?? $data['start_time'] ?? null;
 
-// Combine date and time if both exist
 $end_date = null;
-if ($start_date) {
-    if ($start_time) {
-        $end_date = $start_date . ' ' . $start_time;
-    } else {
-        $end_date = $start_date;
-    }
+if ($end_date_raw) {
+    $end_date = $end_time_raw ? ($end_date_raw . ' ' . $end_time_raw) : $end_date_raw;
 }
 
 // Decode task data
@@ -60,8 +54,18 @@ if ($taskIdFromData) {
 
 // ✅ Insert records with date and notes
 $stmt = $conn->prepare("
-    INSERT INTO field_tasks (task_id, field_id, assigned_farmer_id, details, status, end_date, notes, start_date)
-    VALUES (?, ?, ?, ?, 'pending', ?, ?, NOW())
+    INSERT INTO field_tasks (
+        task_id,
+        field_id,
+        assigned_farmer_id,
+        details,
+        status,
+        end_date,
+        notes,
+        start_date
+    ) VALUES (
+        ?, ?, ?, ?, 'pending', ?, ?, NOW()
+    )
 ");
 
 foreach ($fields as $field_id) {

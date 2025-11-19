@@ -885,11 +885,9 @@ function getCartOffcanvas(){
   return el ? bootstrap.Offcanvas.getOrCreateInstance(el) : null;
 }
 
-// Floating cart button uses lazy init
-document.getElementById('cartFab').addEventListener('click', async ()=>{
-  await loadCart();
-  const off = getCartOffcanvas();
-  off && off.show();
+// Floating cart button now redirects to cart page
+document.getElementById('cartFab').addEventListener('click', () => {
+  window.location.href = `${base}/pages/cart.php`;
 });
 
 // When checking out, hide cart using lazy init

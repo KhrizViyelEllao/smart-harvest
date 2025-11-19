@@ -1,25 +1,42 @@
 <?php
-
-header('Content-Type: application/json');
-include '../../db_connect.php';
 session_start();
+header('Content-Type: application/json; charset=utf-8');
+
+require_once __DIR__ . '/../../db_connect.php';
+
+function respond(array $payload, int $status = 200): void
+{
+    http_response_code($status);
+    echo json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+    exit;
+}
+
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    respond(['success' => false, 'message' => 'Method not allowed'], 405);
+}
+
+$input = json_decode(file_get_contents('php://input'), true);
+if (!is_array($input)) {
+    respond(['success' => false, 'message' => 'Invalid JSON payload'], 400);
+}
+
+$productId = (int)($input['product_id'] ?? 0);
+if ($productId <= 0) {
+    respond(['success' => false, 'message' => 'Product ID is required'], 400);
+}
 
 try {
-  if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'DELETE') throw new Exception('Invalid method');
-  $raw = json_decode(file_get_contents('php://input'), true);
-  if (!is_array($raw)) throw new Exception('Invalid JSON');
+    $stmt = $conn->prepare('DELETE FROM products WHERE product_id = ?');
+    $stmt->bind_param('i', $productId);
+    $stmt->execute();
+    $affected = $stmt->affected_rows;
+    $stmt->close();
 
-  $id = (int)($raw['product_id'] ?? 0);
-  if ($id <= 0) throw new Exception('product_id required');
+    if ($affected <= 0) {
+        respond(['success' => false, 'message' => 'Product not found'], 404);
+    }
 
-  $stmt = $conn->prepare("DELETE FROM products WHERE product_id=?");
-  if (!$stmt) throw new Exception('Prepare failed');
-  $stmt->bind_param('i', $id);
-  if (!$stmt->execute()) throw new Exception('Delete failed: ' . $stmt->error);
-  $stmt->close();
-
-  echo json_encode(['success' => true]);
-} catch (Exception $e) {
-  http_response_code(400);
-  echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+    respond(['success' => true]);
+} catch (Throwable $e) {
+    respond(['success' => false, 'message' => $e->getMessage()], 500);
 }
