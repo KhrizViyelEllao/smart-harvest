@@ -10,7 +10,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
 // Example: Crop Overview
 function loadCropOverview() {
-    fetch("../backend/api/getCrops.php")
+    fetch("/backend/api/getCrops.php")
         .then(res => res.json())
         .then(data => {
             console.log("Crops:", data);

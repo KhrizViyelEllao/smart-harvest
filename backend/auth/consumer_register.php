@@ -4,8 +4,8 @@ session_start();
 include '../db_connect.php';
 
 // Redirect helper
-function back($q){ header('Location: /Agrilink/index.php?signup_error='.urlencode($q)); exit; }
-function success($u){ header('Location: /Agrilink/index.php?signup_ok='.urlencode('Account created. Please log in.').'&prefill='.urlencode($u)); exit; }
+function back($q){ header('Location: /index.php?signup_error='.urlencode($q)); exit; }
+function success($u){ header('Location: /index.php?signup_ok='.urlencode('Account created. Please log in.').'&prefill='.urlencode($u)); exit; }
 
 if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') back('Invalid request');
 

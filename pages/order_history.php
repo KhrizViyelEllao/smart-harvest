@@ -5,7 +5,7 @@
 //   header('Location: /Agrilink/index.php?login_error=' . urlencode('Login as consumer to access orders'));
 //   exit;
 // }
-$base = '/Agrilink/pages';
+$base = '/pages';
 $active = 'orders';
 ?>
 <!DOCTYPE html>
@@ -21,7 +21,7 @@ $active = 'orders';
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
   <!-- Bootstrap + Shared styles -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link href="/Agrilink/assets/css/include.css" rel="stylesheet">
+  <link href="/assets/css/include.css" rel="stylesheet">
   <style> body { font-family: 'Poppins', system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif; } </style>
 </head>
 <body class="bg-light">
@@ -118,7 +118,7 @@ $active = 'orders';
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-const base = location.origin + '/Agrilink';
+const base = location.origin;
 const tbody = document.querySelector('#ordersTable tbody');
 const detailsModal = new bootstrap.Modal(document.getElementById('orderDetailsModal'));
 const detailsBody = document.getElementById('orderDetailsBody');

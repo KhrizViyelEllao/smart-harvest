@@ -108,7 +108,7 @@ document.getElementById('assignFarmerForm').addEventListener('submit', async (e)
   };
 
   try {
-    const res = await fetch('/Agrilink/backend/api/save_field_task.php', {
+    const res = await fetch('/backend/api/save_field_task.php', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
@@ -125,12 +125,12 @@ document.getElementById('assignFarmerForm').addEventListener('submit', async (e)
       modal.show();
 
       document.getElementById('goToTasksBtn').onclick = () => {
-        window.location.href = '/Agrilink/layout.php?page=tasks';
+        window.location.href = '/layout.php?page=tasks';
       };
 
       setTimeout(() => {
         if (modalEl.classList.contains('show')) {
-          window.location.href = '/Agrilink/layout.php?page=tasks';
+          window.location.href = '/layout.php?page=tasks';
         }
       }, 4000);
     } else {

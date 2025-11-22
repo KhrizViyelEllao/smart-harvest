@@ -1,7 +1,7 @@
 <?php
 session_start(); // ADD THIS
 // Authorization disabled for this page
-$base = '/Agrilink/pages';
+$base = '/pages';
 $active = 'shop';
 $CURRENT_USER_ID = (int)($_SESSION['user_id'] ?? 0);
 ?>
@@ -18,7 +18,7 @@ $CURRENT_USER_ID = (int)($_SESSION['user_id'] ?? 0);
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
   <!-- Bootstrap + Shared styles -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link href="/Agrilink/assets/css/include.css" rel="stylesheet">
+  <link href="/assets/css/include.css" rel="stylesheet">
   <style>
     body { font-family: 'Poppins', system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif; }
     .product-card { transition: transform .15s ease, box-shadow .15s ease; border: 1px solid #eee; }
@@ -395,7 +395,7 @@ $CURRENT_USER_ID = (int)($_SESSION['user_id'] ?? 0);
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-const base = location.origin + '/Agrilink';
+const base = location.origin;
 let CURRENT_USER_ID = <?php echo $CURRENT_USER_ID ?: 0; ?>; // make writable
 const FLAT_DELIVERY_FEE = 40;
 const BULK_DISCOUNTS = [

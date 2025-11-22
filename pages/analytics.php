@@ -321,7 +321,7 @@ function analyticsInit() {
           <strong>Confidence:</strong> ${confidence}%`;
 
         // ✅ Fetch Recommendations
-        fetch(`/Agrilink/backend/api/diseaseReco.php?disease=${encodeURIComponent(disease)}`)
+        fetch(`/backend/api/diseaseReco.php?disease=${encodeURIComponent(disease)}`)
           .then(res => res.json())
           .then(info => {
             const recommendationsDiv = document.getElementById("recommendationsList");
@@ -428,7 +428,7 @@ function analyticsInit() {
         }
 
         try {
-          const BASE = window.location.origin + '/Agrilink';
+          const base = window.location.origin;
           const response = await fetch(BASE + "/backend/api/analytics/recommendCrop.php", {
             method: "POST",
             headers: { "Content-Type": "application/json" },

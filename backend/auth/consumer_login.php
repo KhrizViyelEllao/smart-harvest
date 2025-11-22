@@ -5,7 +5,7 @@ include '../db_connect.php';
 
 try {
     if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') {
-        header('Location: /Agrilink/index.php');
+        header('Location: /index.php');
         exit;
     }
 
@@ -13,7 +13,7 @@ try {
     $password = $_POST['password'] ?? '';
 
     if ($userOrEmail === '' || $password === '') {
-        header('Location: /Agrilink/index.php?error=' . urlencode('Please enter credentials') . '#login');
+        header('Location: /index.php?error=' . urlencode('Please enter credentials') . '#login');
         exit;
     }
 
@@ -27,24 +27,24 @@ try {
     $stmt->execute();
     $res = $stmt->get_result();
     if ($res->num_rows === 0) {
-        header('Location: /Agrilink/index.php?error=' . urlencode('Invalid credentials') . '#login');
+        header('Location: /index.php?error=' . urlencode('Invalid credentials') . '#login');
         exit;
     }
     $u = $res->fetch_assoc();
     $stmt->close();
 
     if ((int)$u['is_active'] !== 1) {
-        header('Location: /Agrilink/index.php?error=' . urlencode('Account is inactive') . '#login');
+        header('Location: /index.php?error=' . urlencode('Account is inactive') . '#login');
         exit;
     }
     if (!password_verify($password, $u['password'])) {
-        header('Location: /Agrilink/index.php?error=' . urlencode('Invalid credentials') . '#login');
+        header('Location: /index.php?error=' . urlencode('Invalid credentials') . '#login');
         exit;
     }
 
     // Only allow consumers here; extend as needed
     if ($u['role'] !== 'consumer') {
-        header('Location: /Agrilink/index.php?error=' . urlencode('Not a consumer account') . '#login');
+        header('Location: /index.php?error=' . urlencode('Not a consumer account') . '#login');
         exit;
     }
 
@@ -56,9 +56,9 @@ try {
     $_SESSION['email'] = $u['email'];
 
     // Redirect after login (adjust destination as needed)
-    header('Location: /Agrilink/index.php');
+    header('Location: /index.php');
     exit;
 } catch (Exception $e) {
-    header('Location: /Agrilink/index.php?error=' . urlencode('Login failed') . '#login');
+    header('Location: /index.php?error=' . urlencode('Login failed') . '#login');
     exit;
 }

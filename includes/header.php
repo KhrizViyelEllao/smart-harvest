@@ -19,7 +19,7 @@ elseif ($role === 'admin') $roleIconClass = 'fas fa-shield-halved text-primary';
 
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;500;700&display=swap" rel="stylesheet">
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-  <link href="/Agrilink/assets/css/include.css" rel="stylesheet">
+  <link href="/assets/css/include.css" rel="stylesheet">
   <style>
     #notifBell {
       color: inherit;
@@ -79,7 +79,7 @@ elseif ($role === 'admin') $roleIconClass = 'fas fa-shield-halved text-primary';
           <a href="layout.php?page=profile" class="dropdown-item"><i class="fas fa-user me-2"></i>Profile</a>
           <a href="layout.php?page=settings" class="dropdown-item"><i class="fas fa-cog me-2"></i>Settings</a>
           <div class="dropdown-divider"></div>
-          <a href="/Agrilink/backend/auth/logout.php" class="dropdown-item">
+          <a href="/backend/auth/logout.php" class="dropdown-item">
             <i class="fas fa-sign-out-alt me-2"></i>Logout
           </a>
         </div>
@@ -110,8 +110,8 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   const API = {
-    get: '/Agrilink/backend/functions/get_notifications.php',
-    mark: '/Agrilink/backend/functions/mark_notifications_read.php'
+    get: '/backend/functions/get_notifications.php',
+    mark: '/backend/functions/mark_notifications_read.php'
   };
 
   const state = {

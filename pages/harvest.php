@@ -369,7 +369,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const rows = harvestRows;
 
-  const base = window.location.origin + '/Agrilink';
+  const base = window.location.origin;
   const modalEl = document.getElementById('actualYieldModal');
   const modal = new bootstrap.Modal(modalEl);
   const form = document.getElementById('actualYieldForm');

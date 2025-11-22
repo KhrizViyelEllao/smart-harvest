@@ -1,5 +1,5 @@
 <?php
-// filepath: c:\xampp\htdocs\Agrilink\pages\settings.php
+
 include 'backend/db_connect.php';
 
 // Fetch all people (farmers + users: admin, consumer)
@@ -471,7 +471,7 @@ if ($peopleResult) {
     };
 
     try {
-      const response = await fetch('/Agrilink/backend/api/settings/add_person.php', {
+      const response = await fetch('/backend/api/settings/add_person.php', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData)
@@ -494,7 +494,7 @@ if ($peopleResult) {
   // Edit Person
   async function editPerson(id, role) {
     try {
-      const response = await fetch(`/Agrilink/backend/api/settings/get_person.php?id=${id}&role=${role}`);
+      const response = await fetch(`/backend/api/settings/get_person.php?id=${id}&role=${role}`);
       const data = await response.json();
 
       if (data.success) {
@@ -539,7 +539,7 @@ if ($peopleResult) {
     };
 
     try {
-      const response = await fetch('/Agrilink/backend/api/settings/update_person.php', {
+      const response = await fetch('/backend/api/settings/update_person.php', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData)
@@ -578,7 +578,7 @@ if ($peopleResult) {
     }
 
     try {
-      const response = await fetch('/Agrilink/backend/api/settings/reset_password.php', {
+      const response = await fetch('/backend/api/settings/reset_password.php', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -609,7 +609,7 @@ if ($peopleResult) {
     if (!confirm(`Change status to ${newStatus}?`)) return;
 
     try {
-      const response = await fetch('/Agrilink/backend/api/settings/toggle_status.php', {
+      const response = await fetch('/backend/api/settings/toggle_status.php', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id, role, status: newStatus })
@@ -634,7 +634,7 @@ if ($peopleResult) {
     if (!confirm('Are you sure you want to remove this person? This action cannot be undone.')) return;
 
     try {
-      const response = await fetch('/Agrilink/backend/api/settings/delete_person.php', {
+      const response = await fetch('/backend/api/settings/delete_person.php', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id, role })

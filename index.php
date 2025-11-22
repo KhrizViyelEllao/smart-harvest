@@ -445,7 +445,7 @@
         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
       </div>
       <div class="modal-body p-4">
-        <form action="/Agrilink/backend/auth.php" method="POST" novalidate>
+        <form action="/backend/auth.php" method="POST" novalidate>
           <div id="loginError" class="alert alert-danger d-none py-2 mb-3"></div>
           <div id="loginMsg" class="alert alert-success d-none py-2 mb-3"></div>
           <div class="mb-3">
@@ -483,7 +483,7 @@
         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
       </div>
       <div class="modal-body p-4">
-        <form id="signupForm" action="/Agrilink/backend/auth/consumer_register.php" method="POST" novalidate>
+        <form id="signupForm" action="/backend/auth/consumer_register.php" method="POST" novalidate>
           <div id="signupError" class="alert alert-danger d-none py-2 mb-3"></div>
           <div id="signupMsg" class="alert alert-success d-none py-2 mb-3"></div>
           <div class="row g-3">
@@ -619,7 +619,7 @@ document.getElementById('signupForm')?.addEventListener('submit', e=>{
 
 (async () => {
   try {
-    const res = await fetch('/Agrilink/backend/api/analytics/get_weather.php', { cache: 'no-store' });
+    const res = await fetch('/backend/api/analytics/get_weather.php', { cache: 'no-store' });
     const data = await res.json();
     if (!data || data.error) throw new Error(data?.error || 'Weather unavailable');
     document.getElementById('w-temp').textContent = `${Number(data.temperature ?? 0).toFixed(1)}°C`;

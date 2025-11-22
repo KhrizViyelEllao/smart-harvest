@@ -6,7 +6,7 @@ include_once 'backend/db_connect.php';
   <div class="container py-5">
     <div class="card shadow-sm mx-auto" style="max-width:820px;">
       <div class="card-body p-4">
-        <button type="button" class="btn btn-outline-secondary btn-sm mb-3" onclick="window.location.href='/Agrilink/layout.php?page=tasks'">
+        <button type="button" class="btn btn-outline-secondary btn-sm mb-3" onclick="window.location.href='/layout.php?page=tasks'">
           &larr; Back to Tasks
         </button>
 
@@ -135,7 +135,7 @@ include_once 'backend/db_connect.php';
 
 <script>
 (function () {
-  const base = window.location.origin + '/Agrilink';
+  const base = window.location.origin;
   const storageKey = 'irrigationTaskDetails';
 
   const fieldIdInput      = document.getElementById('fieldIdHidden');

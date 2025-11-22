@@ -1,5 +1,5 @@
 <?php
-// filepath: c:\xampp\htdocs\Agrilink\pages\dashboard.php
+
 include 'backend/db_connect.php';
 
 // Fetch statistics
@@ -587,7 +587,7 @@ if ($result) {
 
 <script>
 (function(){
-  const base = location.origin + '/Agrilink';
+  const base = location.origin;
   const money = n => '₱' + Number(n||0).toFixed(2);
   const esc = s => (s||'').toString().replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));
 

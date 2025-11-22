@@ -2,7 +2,7 @@
 
 // filepath: c:\xampp\htdocs\Agrilink\includes\consumer_nav.php
 // Requires $base = '/Agrilink/pages' and $active = 'shop'|'orders'|'profile'|'cart'
-if (!isset($base))  $base = '/Agrilink/pages';
+if (!isset($base))  $base = '/pages';
 if (!isset($active)) $active = '';
 ?>
 <nav class="navbar navbar-expand-lg navbar-dark mb-4" style="background:#198754;">
@@ -37,7 +37,7 @@ if (!isset($active)) $active = '';
           </a>
         </li>
         <li class="nav-item ms-2">
-          <a class="btn btn-outline-light btn-sm" href="/Agrilink/backend/auth/logout.php">
+          <a class="btn btn-outline-light btn-sm" href="/backend/auth/logout.php">
             <i class="fa-solid fa-right-from-bracket me-1"></i>Logout
           </a>
         </li>

@@ -106,7 +106,7 @@
 <script>
 // Redirect to logout endpoint on confirm
 document.getElementById('confirmLogoutBtn')?.addEventListener('click', () => {
-  window.location.href = '/Agrilink/backend/auth/logout.php';
+  window.location.href = '/backend/auth/logout.php';
 });
 </script>
 

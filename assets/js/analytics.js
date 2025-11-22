@@ -66,7 +66,7 @@ function analyticsInit() {
       const confidence = (top.confidence * 100).toFixed(2);
 
       // ✅ Fetch disease info (recommendations + causes)
-      const infoResponse = await fetch(`/Agrilink/backend/api/diseaseReco.php?disease=${encodeURIComponent(diseaseName)}`);
+      const infoResponse = await fetch(`/backend/api/diseaseReco.php?disease=${encodeURIComponent(diseaseName)}`);
       const infoData = await infoResponse.json();
 
       let html = `

@@ -116,14 +116,16 @@ include_once 'backend/db_connect.php';
   localStorage.setItem('cleaningTaskDetails', JSON.stringify(data));
 
   // go to the next step — assign farmer
-  const base = window.location.origin + '/Agrilink';
+  const base = window.location.origin;
   window.location.href = `${base}/layout.php?page=assign_farmer`;
+
 });
 
 
 function goBackToTasks() {
-  const base = window.location.origin + '/Agrilink';
-  window.location.href = `${base}/layout.php?page=tasks`;
+  const base = window.location.origin;
+window.location.href = `${base}/layout.php?page=tasks`;
+
 }
 
 

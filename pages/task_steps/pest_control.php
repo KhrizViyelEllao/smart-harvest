@@ -140,12 +140,12 @@ include_once 'backend/db_connect.php';
     localStorage.setItem('pestControlTaskDetails', JSON.stringify(data));
 
     // Go to next step — assign farmer
-    const base = window.location.origin + '/Agrilink';
+    const base = window.location.origin;
     window.location.href = `${base}/layout.php?page=assign_farmer`;
   });
 
   function goBackToTasks() {
-    const base = window.location.origin + '/Agrilink';
+    const base = window.location.origin;
     window.location.href = `${base}/layout.php?page=tasks`;
   }
 </script>

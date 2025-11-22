@@ -111,8 +111,9 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 function goBackToTasks() {
-  const base = window.location.origin + '/Agrilink';
-  window.location.href = `${base}/layout.php?page=tasks`;
+const base = window.location.origin;
+window.location.href = `${base}/layout.php?page=tasks`;
+
 }
 
 async function loadCropsByField(fieldId, fieldName) {
@@ -120,7 +121,7 @@ async function loadCropsByField(fieldId, fieldName) {
   cropList.innerHTML = '<div class="text-center text-muted">Loading crops from ' + fieldName + '...</div>';
 
   try {
-    const res = await fetch('/Agrilink/backend/api/tasks/get_crops_by_field.php', {
+    const res = await fetch('/backend/api/tasks/get_crops_by_field.php', {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
       body: JSON.stringify({ field_id: fieldId })
@@ -181,8 +182,9 @@ document.getElementById('continueBtn').addEventListener('click', () => {
   localStorage.setItem('fertilizingTaskDetails', JSON.stringify(data));
   localStorage.setItem('taskType', 'fertilizing');
 
-  const base = window.location.origin + '/Agrilink';
-  window.location.href = `${base}/layout.php?page=assign_farmer`;
+  const base = window.location.origin;
+window.location.href = `${base}/layout.php?page=assign_farmer`;
+
 });
 </script>
 

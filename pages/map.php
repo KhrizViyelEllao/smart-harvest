@@ -259,8 +259,8 @@
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 
   <script>
-  const WEATHER_ENDPOINT = '/Agrilink/backend/api/analytics/get_weather.php';
-  const CROP_REC_ENDPOINT = '/Agrilink/backend/api/map/simple_crop_recs.php';
+  const WEATHER_ENDPOINT = '/backend/api/analytics/get_weather.php';
+  const CROP_REC_ENDPOINT = '/backend/api/map/simple_crop_recs.php';
   const WEATHER_REFRESH_MS = 10 * 60 * 1000; // 10 minutes
   let weatherRefreshTimer = null;
   const fieldWeatherCache = new Map();
@@ -578,7 +578,7 @@ async function handleFieldClick(field, layer) {
         if (!fieldId) return;
 
         try {
-          const res = await fetch('/Agrilink/backend/api/map/update_field.php', {
+          const res = await fetch('/backend/api/map/update_field.php', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ field_id: fieldId, geometry: updatedGeometry })
@@ -603,7 +603,7 @@ async function handleFieldClick(field, layer) {
         if (!confirm('Are you sure you want to delete this field?')) return;
 
         try {
-          const res = await fetch('/Agrilink/backend/api/map/delete_field.php', {
+          const res = await fetch('/backend/api/map/delete_field.php', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ field_id: fieldId })
@@ -660,7 +660,7 @@ async function handleFieldClick(field, layer) {
     saveBtn.disabled = true;
 
     try {
-      const response = await fetch('/Agrilink/backend/api/map/save_field.php', {
+      const response = await fetch('/backend/api/map/save_field.php', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -711,7 +711,7 @@ async function handleFieldClick(field, layer) {
   // ✅ Load fields from backend
   async function loadFields(map) {
     try {
-      const res = await fetch('/Agrilink/backend/api/map/get_fields.php', { cache: 'no-store' });
+      const res = await fetch('/backend/api/map/get_fields.php', { cache: 'no-store' });
       const fields = await res.json();
       if (window.drawnItems) {
         window.drawnItems.clearLayers();

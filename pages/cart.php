@@ -2,7 +2,7 @@
 
 session_start();
 // Authorization disabled for this page
-$base = '/Agrilink/pages';
+$base = '/pages';
 $active = 'cart';
 $CURRENT_USER_ID = (int)($_SESSION['user_id'] ?? 0);
 ?>
@@ -14,7 +14,7 @@ $CURRENT_USER_ID = (int)($_SESSION['user_id'] ?? 0);
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
-  <link href="/Agrilink/assets/css/include.css" rel="stylesheet">
+  <link href="/assets/css/include.css" rel="stylesheet">
 </head>
 <body class="bg-light">
 <?php require_once __DIR__ . '/../includes/consumer_nav.php'; ?>
@@ -125,7 +125,7 @@ $CURRENT_USER_ID = (int)($_SESSION['user_id'] ?? 0);
 <div class="toast-container position-fixed top-0 end-0 p-3" id="toastContainer"></div>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-const base = location.origin + '/Agrilink';
+const base = location.origin;
 let CURRENT_USER_ID = <?php echo $CURRENT_USER_ID ?: 0; ?>;
 const FLAT_DELIVERY_FEE = 40;
 

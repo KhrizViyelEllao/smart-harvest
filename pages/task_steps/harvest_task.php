@@ -88,7 +88,7 @@ include_once 'backend/db_connect.php';
 
 <script>
 (function () {
-  const base = window.location.origin + '/Agrilink';
+  const base = window.location.origin;
 
   const fieldIdInput         = document.getElementById('fieldIdHidden');
   const fieldNameDisplay     = document.getElementById('fieldNameDisplay');

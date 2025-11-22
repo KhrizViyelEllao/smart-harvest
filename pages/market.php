@@ -207,7 +207,7 @@ require_once __DIR__ . '/../backend/db_connect.php';
 
 <script>
 document.addEventListener('DOMContentLoaded', async () => {
-  const base = location.origin + '/Agrilink';
+  const base = location.origin;
 
   // Removed all auth checks and heartbeat
   // const allowed = new Set(['farm_owner','farmer','admin','seller']);

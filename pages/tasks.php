@@ -1,5 +1,5 @@
 <?php
-// filepath: c:\xampp\htdocs\Agrilink\pages\tasks.php
+
 include 'backend/db_connect.php';
 
 // Fetch all field tasks with details
@@ -465,7 +465,7 @@ if ($res) {
     const category = (el.getAttribute('data-taskcategory') || '').toLowerCase();
     selectedTask = { id: taskId, name: taskName };
 
-    const baseLayout = window.location.origin + '/Agrilink/layout.php?page=';
+    const baseLayout = window.location.origin + '/layout.php?page=';
 
     // If planting task, skip stepper entirely and go straight to crops page.
     if (category === 'planting' || taskName.toLowerCase().includes('plant')) {
@@ -557,7 +557,7 @@ if ($res) {
   }
 
   function loadFields() {
-    const base = window.location.origin + '/Agrilink';
+    const base = window.location.origin;
     fetch(base + '/backend/api/map/get_fields.php')
       .then(response => response.json())
       .then(fields => {
@@ -597,7 +597,7 @@ if ($res) {
           localStorage.setItem('taskEndDate', selectedDate || '');
           localStorage.setItem('taskEndTime', selectedTime || '');
 
-          const base = window.location.origin + '/Agrilink/layout.php?page=';
+          const base = window.location.origin + '/layout.php?page=';
           const taskName = (selectedTask?.name || '').toLowerCase();
           let nextPage = base + 'assign_farmer';
 
@@ -620,7 +620,7 @@ if ($res) {
     if (!fieldTaskId) return;
     currentTaskId = fieldTaskId;
 
-    const base = window.location.origin + '/Agrilink';
+    const base = window.location.origin;
     fetch(base + '/backend/api/tasks/get_field_task_details.php?id=' + fieldTaskId)
       .then(r => r.json())
       .then(data => {
@@ -753,7 +753,7 @@ if ($res) {
   }
 
   function updateTaskStatus(status) {
-    const base = window.location.origin + '/Agrilink';
+    const base = window.location.origin;
 
     if (status === 'deleted') {
       return deleteTask(currentTaskId);
@@ -779,7 +779,7 @@ if ($res) {
   }
 
   function deleteTask(fieldTaskId) {
-    const base = window.location.origin + '/Agrilink';
+    const base = window.location.origin;
     return fetch(base + '/backend/api/tasks/delete_field_task.php', {
       method: 'DELETE',
       headers: { 'Content-Type': 'application/json' },

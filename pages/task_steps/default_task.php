@@ -80,12 +80,14 @@ include_once 'backend/db_connect.php';
     localStorage.setItem('defaultTaskDetails', JSON.stringify(data));
 
     // Proceed to assign farmer
-    const base = window.location.origin + '/Agrilink';
-    window.location.href = `${base}/layout.php?page=assign_farmer`;
+    const base = window.location.origin;
+window.location.href = `${base}/layout.php?page=assign_farmer`;
+
   });
 
   function goBackToTasks() {
-    const base = window.location.origin + '/Agrilink';
-    window.location.href = `${base}/layout.php?page=tasks`;
+    const base = window.location.origin;
+window.location.href = `${base}/layout.php?page=tasks`;
+
   }
 </script>
