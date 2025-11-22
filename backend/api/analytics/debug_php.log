@@ -1071,3 +1071,15 @@ ModuleNotFoundError: import of asyncio halted; None in sys.modules
 [2025-11-22 07:35:21] STDERR: 
 [2025-11-22 07:35:21] === End Request ===
 
+[2025-11-22 08:34:38] === New Request ===
+[2025-11-22 08:34:38] Command: "C:\Program Files\Python310\python.exe" -u "C:\xampp\htdocs\Agrilink\backend\api\analytics\smart_care_engine.py"
+[2025-11-22 08:34:38] Working Dir: C:\xampp\htdocs\Agrilink\backend\api\analytics
+[2025-11-22 08:34:38] Payload: {"N":56,"P":78,"K":78,"ph":8,"city":"Balayan"}
+[2025-11-22 08:34:38] Exit code: 0
+[2025-11-22 08:34:38] STDOUT length: 878
+[2025-11-22 08:34:38] STDOUT: {"recommended_crop": "banana", "probabilities": {"apple": 0.0, "banana": 0.9999735315599572, "blackgram": 1.0857571052153561e-72, "chickpea": 1.5287470770641044e-187, "coconut": 2.534988416823549e-45, "coffee": 1.7390442824436574e-12, "cotton": 1.318937244799185e-41, "grapes": 0.0, "jute": 6.705391834432315e-08, "kidneybeans": 4.2875959735018295e-197, "lentil": 4.897751906037172e-53, "maize": 1.3093400922932167e-38, "mango": 2.1369477851903753e-192, "mothbeans": 1.2880923336231688e-27, "mungbean": 6.281949896113021e-40, "muskmelon": 1.7345192094896152e-50, "orange": 1.3544532358104842e-206, "papaya": 1.7764379717351908e-28, "pigeonpeas": 2.1025824549322083e-49, "pomegranate": 1e-323, "rice": 1.8045421762657027e-11, "watermelon": 2.64013663506387e-05}, "features": {"N": 56.0, "P": 78.0, "K": 78.0, "temperature": 29.37, "humidity": 70.0, "ph": 8.0, "rainfall": 0.0}}
+
+[2025-11-22 08:34:38] STDERR length: 0
+[2025-11-22 08:34:38] STDERR: 
+[2025-11-22 08:34:38] === End Request ===
+

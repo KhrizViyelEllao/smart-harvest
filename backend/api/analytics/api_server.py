@@ -1,6 +1,7 @@
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
-import subprocess, sys, json, os, tempfile
+import subprocess, sys, json, os
+from typing import Optional
 
 app = FastAPI(title="Smart Care Engine API")
 
@@ -9,9 +10,13 @@ class PredictionPayload(BaseModel):
     P: float
     K: float
     ph: float
-    city: str | None = None
+    city: Optional[str] = None
 
 ENGINE_PATH = os.path.join(os.path.dirname(__file__), "smart_care_engine.py")
+
+@app.get("/")
+def root():
+    return {"message": "Smart Care Engine API is running. Use /predict endpoint."}
 
 @app.post("/predict")
 def predict(payload: PredictionPayload):
@@ -27,7 +32,8 @@ def predict(payload: PredictionPayload):
         cwd=os.path.dirname(ENGINE_PATH),
         env={**os.environ, "PYTHONUNBUFFERED": "1"}
     )
-    out, err = proc.communicate(payload.model_dump_json())
+    # safer way to send JSON to subprocess
+    out, err = proc.communicate(payload.json())
 
     if proc.returncode != 0:
         raise HTTPException(status_code=502, detail=err or "Engine failed.")
