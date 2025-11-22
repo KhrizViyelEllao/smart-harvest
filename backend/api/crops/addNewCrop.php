@@ -19,6 +19,13 @@ try {
     exit;
   }
 
+  // Validate category
+  $valid_categories = ['Vegetable', 'Fruit', 'Grain'];
+  if (!in_array($category, $valid_categories)) {
+    echo json_encode(['success' => false, 'message' => 'Invalid category. Must be Vegetable, Fruit, or Grain.']);
+    exit;
+  }
+
   $imageData = null;
   $imageSize = 0;
   if (!empty($_FILES['image_file']['tmp_name']) && is_uploaded_file($_FILES['image_file']['tmp_name'])) {
@@ -79,3 +86,4 @@ try {
   http_response_code(500);
   echo json_encode(['success' => false, 'message' => $e->getMessage()]);
 }
+?>

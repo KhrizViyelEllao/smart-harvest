@@ -10,6 +10,14 @@ if (!isset($_FILES['file'])) {
     exit;
 }
 
+
+
+
+
+//api codes kapag ayaw gumana bwisit
+//Fx0YVpt1wVVhidRmZC9i
+
+
 // ✅ Updated model info
 $api_key = "lty0TJAy6einUxkz4XEd";
 $model_id = "plants-diseases-detection-and-classification/12";

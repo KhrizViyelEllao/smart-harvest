@@ -38,6 +38,97 @@ $CURRENT_USER_ID = (int)($_SESSION['user_id'] ?? 0);
     .badge-quality-high { background:#198754; }
     .badge-quality-medium { background:#ffc107; color:#212529; }
     .badge-quality-low { background:#dc3545; }
+    .recently-viewed-wrap {
+      display: flex;
+      gap: 12px;
+      overflow-x: auto;
+      padding-bottom: 4px;
+    }
+    .recently-viewed-wrap::-webkit-scrollbar { height: 6px; }
+    .recently-viewed-wrap::-webkit-scrollbar-thumb { background: rgba(25,135,84,0.4); border-radius: 4px; }
+    .recent-card {
+      min-width: 150px;
+      max-width: 150px;
+      border: 1px solid #eef2ed;
+      border-radius: 10px;
+      background: #fff;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.06);
+      transition: transform .15s ease;
+      cursor: pointer;
+    }
+    .recent-card:hover { transform: translateY(-3px); }
+    .recent-card img {
+      width: 100%;
+      height: 90px;
+      object-fit: cover;
+      border-top-left-radius: 10px;
+      border-top-right-radius: 10px;
+    }
+    .recent-card .recent-body { padding: 8px 10px; }
+    .recent-card .recent-price {
+      font-weight: 600;
+      color: #1b5e20;
+      font-size: 0.85rem;
+    }
+    .compare-panel {
+      position: fixed;
+      right: 24px;
+      bottom: 24px;
+      width: 320px;
+      max-height: 60vh;
+      padding: 16px;
+      border-radius: 14px;
+      background: rgba(255,255,255,0.96);
+      border: 1px solid #e5f0e4;
+      box-shadow: 0 10px 24px rgba(0,0,0,0.12);
+      z-index: 1075;
+      backdrop-filter: blur(6px);
+      overflow-y: auto;
+    }
+    .compare-panel.compare-empty { opacity: 0.75; }
+    .compare-body .compare-card {
+      display: flex;
+      gap: 10px;
+      padding: 10px;
+      border-radius: 10px;
+      background: #f8faf7;
+      border: 1px solid #e4eddf;
+      margin-bottom: 10px;
+    }
+    .compare-card img {
+      width: 54px;
+      height: 54px;
+      border-radius: 8px;
+      object-fit: cover;
+    }
+    .compare-pill {
+      font-size: 0.75rem;
+      padding: 2px 6px;
+      border-radius: 999px;
+      background: #e9f5eb;
+      color: #1b5e20;
+      margin-right: 6px;
+    }
+    .price-alert-badge {
+      background: #fff3cd;
+      color: #856404;
+    }
+    .price-alert-hit {
+      background: #d4edda !important;
+      color: #0f5132 !important;
+    }
+    .bulk-info-badge {
+      background: #e8f5e9;
+      color: #1b5e20;
+    }
+    .ring-highlight {
+      animation: highlightPulse 1.2s ease;
+    }
+    @keyframes highlightPulse {
+      0% { box-shadow: 0 0 0 0 rgba(25,135,84,0.0); }
+      50% { box-shadow: 0 0 0 6px rgba(25,135,84,0.25); }
+      100% { box-shadow: 0 0 0 0 rgba(25,135,84,0.0); }
+    }
   </style>
 </head>
 <body class="bg-light">
@@ -45,15 +136,7 @@ $CURRENT_USER_ID = (int)($_SESSION['user_id'] ?? 0);
 
 <div class="container pb-5">
   <!-- Floating Cart Button -->
-  <button type="button"
-          id="cartFab"
-          class="btn btn-success position-fixed rounded-circle shadow"
-          style="bottom:20px;right:20px;width:58px;height:58px;z-index:1070;">
-    <i class="fa fa-shopping-cart"></i>
-    <span id="cartCountBubble"
-          class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-info text-dark"
-          style="font-size:.65rem;">0</span>
-  </button>
+
   <!-- Filters/Search -->
   <div class="card shadow-sm mb-3">
     <div class="card-body">
@@ -89,6 +172,16 @@ $CURRENT_USER_ID = (int)($_SESSION['user_id'] ?? 0);
       </div>
     </div>
   </div>
+
+  <section id="recentlyViewedSection" class="mb-4 d-none">
+    <div class="d-flex justify-content-between align-items-center mb-2">
+      <h6 class="text-success fw-semibold mb-0">Recently Viewed</h6>
+      <button type="button" class="btn btn-link btn-sm text-decoration-none" id="recentlyViewedClear">Clear</button>
+    </div>
+    <div class="recently-viewed-wrap" id="recentlyViewedWrap">
+      <div class="text-muted small py-3">No recently viewed products yet.</div>
+    </div>
+  </section>
 
   <h4 class="mb-3 text-success fw-bold">Available Products</h4>
   <div id="products" class="row g-4"></div>
@@ -146,10 +239,15 @@ $CURRENT_USER_ID = (int)($_SESSION['user_id'] ?? 0);
             <span>Delivery Fee:</span>
             <strong>₱<span id="orderDeliveryFee">0.00</span></strong>
           </div>
+          <div class="d-flex justify-content-between text-success mb-1 d-none" id="orderDiscountRow">
+            <span>Bulk Discount:</span>
+            <strong>-₱<span id="orderDiscountAmount">0.00</span></strong>
+          </div>
           <div class="d-flex justify-content-between">
             <span>Total:</span>
             <strong>₱<span id="orderTotal">0.00</span></strong>
           </div>
+          <div class="small text-muted mt-1" id="orderBulkHint">Order ≥10kg to unlock bulk savings.</div>
         </div>
       </div>
       <div class="modal-footer">
@@ -190,12 +288,51 @@ $CURRENT_USER_ID = (int)($_SESSION['user_id'] ?? 0);
             <input type="number" step="0.01" min="0.01" id="cartQty" class="form-control" required>
         </div>
         <div class="p-2 bg-light border rounded small">
-          Item Total: ₱<span id="cartItemTotal">0.00</span>
+          <div class="d-flex justify-content-between mb-1">
+            <span>Subtotal:</span>
+            <span>₱<span id="cartItemSubtotal">0.00</span></span>
+          </div>
+          <div class="d-flex justify-content-between text-success mb-1 d-none" id="cartDiscountRowModal">
+            <span>Bulk Discount:</span>
+            <span>-₱<span id="cartDiscountAmount">0.00</span></span>
+          </div>
+          <div class="d-flex justify-content-between fw-semibold">
+            <span>Payable:</span>
+            <span>₱<span id="cartPayableTotal">0.00</span></span>
+          </div>
         </div>
       </div>
       <div class="modal-footer">
         <button class="btn btn-secondary" type="button" data-bs-dismiss="modal">Cancel</button>
         <button class="btn btn-success" type="submit">Add To Cart</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Price Alert Modal (add before existing success/error modals) -->
+<div class="modal fade" id="priceAlertModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <form id="priceAlertForm" class="modal-content">
+      <div class="modal-header bg-warning text-dark">
+        <h6 class="modal-title"><i class="fas fa-bell me-2"></i>Price Alert</h6>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="priceAlertProductId">
+        <div class="mb-2">
+          <strong id="priceAlertName"></strong>
+          <div class="small text-muted">Current price: ₱<span id="priceAlertCurrent">0.00</span>/kg</div>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Notify me when price is at or below (₱/kg)</label>
+          <input type="number" step="0.01" min="0.01" class="form-control" id="priceAlertTarget" required>
+        </div>
+        <div class="alert alert-info small mb-0">Alerts are saved on this device.</div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" id="priceAlertRemoveBtn">Remove Alert</button>
+        <button type="submit" class="btn btn-warning text-dark">Save Alert</button>
       </div>
     </form>
   </div>
@@ -261,6 +398,32 @@ $CURRENT_USER_ID = (int)($_SESSION['user_id'] ?? 0);
 const base = location.origin + '/Agrilink';
 let CURRENT_USER_ID = <?php echo $CURRENT_USER_ID ?: 0; ?>; // make writable
 const FLAT_DELIVERY_FEE = 40;
+const BULK_DISCOUNTS = [
+  { threshold: 50, rate: 0.10 },
+  { threshold: 20, rate: 0.07 },
+  { threshold: 10, rate: 0.05 }
+];
+const RECENT_KEY = 'agrilink_recent_products';
+const MAX_RECENT = 6;
+const COMPARE_KEY = 'agrilink_compare_products';
+const COMPARE_MAX = 3;
+const PRICE_ALERT_KEY = 'agrilink_price_alerts';
+
+const orderDiscountRow = document.getElementById('orderDiscountRow');
+const orderDiscountAmountEl = document.getElementById('orderDiscountAmount');
+const orderBulkHint = document.getElementById('orderBulkHint');
+
+const cartDiscountRowModal = document.getElementById('cartDiscountRowModal');
+const cartDiscountAmountEl = document.getElementById('cartDiscountAmount');
+const cartItemSubtotalEl = document.getElementById('cartItemSubtotal');
+const cartPayableTotalEl = document.getElementById('cartPayableTotal');
+const cartDiscountRow = document.getElementById('cartDiscountRow');
+const cartDiscountTotalEl = document.getElementById('cartDiscountTotal');
+
+let compareSelection = loadCompareSelection();
+let priceAlerts = loadPriceAlerts();
+let productsData = [];
+let currentCartItems = [];
 
 const orderDeliveryEl      = document.getElementById('orderDelivery');
 const orderAddressWrap     = document.getElementById('orderAddressWrap');
@@ -300,7 +463,6 @@ const addCartModal = new bootstrap.Modal(document.getElementById('addCartModal')
 const PRODUCT_PLACEHOLDER = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="480" height="320"><rect width="100%" height="100%" fill="%23e9ecef"/><text x="50%" y="50%" text-anchor="middle" fill="%236c757d" font-size="22" font-family="Arial">No Image</text></svg>';
 
 const ratingsCache = new Map();
-let productsData = [];
 
 function escapeHtml(str){return (str||'').replace(/[&<>"']/g,s=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[s]));}
 function normalizeImagePath(path){
@@ -431,8 +593,10 @@ function renderProducts(list){
     col.className='col-sm-6 col-lg-4';
     const imgSrc = getProductImageUrl(p) || PRODUCT_PLACEHOLDER;
     const avg = ratingsCache.get(p.product_id) || 0;
+    const priceAlertBadge = buildPriceAlertBadge(p);
+    const bulkBadge = bulkInfoBadge();
     col.innerHTML = `
-      <div class="card product-card h-100">
+      <div class="card product-card h-100" data-product-card="${p.product_id}">
         <img src="${escapeHtml(imgSrc)}" class="card-img-top product-img"
              alt="${escapeHtml(p.name)}"
              onerror="this.onerror=null;this.src='${escapeHtml(PRODUCT_PLACEHOLDER)}';">
@@ -443,8 +607,8 @@ function renderProducts(list){
               ${ratingStars(avg)}
             </div>
           </div>
-          <div class="small mb-2 d-flex flex-wrap align-items-center">
-            ${qualityBadge(p)} ${productBadges(p)}
+          <div class="small mb-2 d-flex flex-wrap align-items-center gap-1">
+            ${qualityBadge(p)} ${productBadges(p)} ${priceAlertBadge} ${bulkBadge}
           </div>
           <p class="small text-muted mb-2">${escapeHtml(p.description||'')}</p>
           <div class="mb-2 d-flex justify-content-between">
@@ -452,55 +616,59 @@ function renderProducts(list){
             <span class="badge ${Number(p.available_qty)<=5?'badge-low':'bg-secondary'}">Avail: ${Number(p.available_qty).toFixed(2)} kg</span>
           </div>
           <div class="mt-auto d-flex gap-2 card-actions">
-            <button class="btn btn-outline-success flex-fill order-btn"
-                    data-id="${p.product_id}"
-                    data-name="${escapeHtml(p.name)}"
-                    data-price="${p.price_per_kg}"
-                    data-available="${p.available_qty}">
+            <button class="btn btn-outline-success flex-fill order-btn">
               <i class="fa-solid fa-basket-shopping me-1"></i>Order
             </button>
-            <button class="btn btn-success flex-fill addcart-btn"
-                    data-id="${p.product_id}"
-                    data-name="${escapeHtml(p.name)}"
-                    data-price="${p.price_per_kg}"
-                    data-available="${p.available_qty}"
-                    ${p.status!=='available'?'disabled':''}>
+            <button class="btn btn-success flex-fill addcart-btn" ${p.status!=='available'?'disabled':''}>
               <i class="fa-solid fa-cart-plus me-1"></i>Add to Cart
+            </button>
+          </div>
+          <div class="d-flex gap-2 mt-2">
+            <button class="btn btn-sm btn-outline-secondary flex-fill compare-btn">
+              <i class="fas fa-balance-scale me-1"></i>Compare
+            </button>
+            <button class="btn btn-sm btn-outline-warning flex-fill alert-btn">
+              <i class="fas fa-bell me-1"></i>Alert
             </button>
           </div>
         </div>
       </div>`;
-    productsWrap.appendChild(col);
-  });
-
-  // Bind actions
-  document.querySelectorAll('.order-btn').forEach(btn=>{
-    btn.addEventListener('click',()=>{
+    const orderBtn = col.querySelector('.order-btn');
+    orderBtn.addEventListener('click', () => {
+      markProductViewed(p);
       orderDeliveryEl.value = 'pickup';
-      document.getElementById('orderProductId').value = btn.dataset.id;
-      document.getElementById('orderProductName').value = btn.dataset.name;
-      orderPriceInput.value = Number(btn.dataset.price).toFixed(2);
-      document.getElementById('orderAvailable').value = Number(btn.dataset.available).toFixed(2);
-      orderQtyInput.value='';
+      document.getElementById('orderProductId').value = p.product_id;
+      document.getElementById('orderProductName').value = p.name;
+      orderPriceInput.value = Number(p.price_per_kg).toFixed(2);
+      document.getElementById('orderAvailable').value = Number(p.available_qty).toFixed(2);
+      orderQtyInput.value = '';
       refreshOrderModalTotals();
       document.getElementById('orderError').classList.add('d-none');
       orderModal.show();
     });
-  });
-
-  // IMPORTANT: only open the Add-To-Cart modal; do not add immediately
-  document.querySelectorAll('.addcart-btn').forEach(btn=>{
-    btn.addEventListener('click', async ()=>{
+    const addBtn = col.querySelector('.addcart-btn');
+    addBtn?.addEventListener('click', async () => {
+      markProductViewed(p);
       if (!CURRENT_USER_ID) { await hydrateUser(); }
       if (!CURRENT_USER_ID) { showToast('Login required','danger'); return; }
       openAddCart({
-        id: btn.dataset.id,
-        name: btn.dataset.name,
-        price: btn.dataset.price,
-        available: btn.dataset.available
+        id: p.product_id,
+        name: p.name,
+        price: p.price_per_kg,
+        available: p.available_qty
       });
     });
+    col.querySelector('.compare-btn').addEventListener('click', () => toggleCompare(p));
+    col.querySelector('.alert-btn').addEventListener('click', () => {
+      if (!priceAlertModal) return;
+      openPriceAlert(p);
+    });
+    productsWrap.appendChild(col);
   });
+
+  // Bind actions
+  highlightCompareButtons();
+  renderComparePanel();
 }
 
 // Ratings fetch
@@ -561,18 +729,28 @@ document.getElementById('orderQty').addEventListener('input',()=>{
   document.getElementById('orderTotal').textContent = (q*price).toFixed(2);
 });
 
+// ...bulk-aware totals...
 function refreshOrderModalTotals(){
   const qty  = parseFloat(orderQtyInput.value || 0);
   const price = parseFloat(orderPriceInput.value || 0);
   const opt  = orderDeliveryEl.value;
-  const fee  = opt === 'delivery' ? FLAT_DELIVERY_FEE : 0;
+  const { subtotal, rate, discount, total } = computeBulkAmounts(qty, price);
+  const fee = opt === 'delivery' && qty > 0 ? FLAT_DELIVERY_FEE : 0;
 
   orderDeliveryFeeEl.textContent = fee.toFixed(2);
-  orderTotalEl.textContent = (qty * price + (qty > 0 ? fee : 0)).toFixed(2);
-
   orderAddressWrap.classList.toggle('d-none', opt !== 'delivery');
   orderFeeRow.classList.toggle('d-none', opt !== 'delivery');
+
+  const discountActive = rate > 0 && qty > 0;
+  orderDiscountRow.classList.toggle('d-none', !discountActive);
+  if (discountActive) orderDiscountAmountEl.textContent = discount.toFixed(2);
+
+  orderTotalEl.textContent = (total + fee).toFixed(2);
+  orderBulkHint.textContent = discountActive
+    ? `${Math.round(rate * 100)}% bulk discount applied.`
+    : 'Order more than 10kg to unlock bulk savings.';
 }
+document.getElementById('orderQty').addEventListener('input', refreshOrderModalTotals);
 
 orderDeliveryEl.addEventListener('change', refreshOrderModalTotals);
 orderQtyInput.addEventListener('input', refreshOrderModalTotals);
@@ -716,16 +894,26 @@ const cartContactEl   = document.getElementById('cartContact');
 const cartCheckoutBtn = document.getElementById('cartCheckoutBtn');
 const cartCountBubble = document.getElementById('cartCountBubble');
 
+
 function calcDeliveryFee(deliveryOpt){
   return deliveryOpt === 'delivery' ? FLAT_DELIVERY_FEE : 0;
 }
-function updateCartTotals(items){
-  const subtotal = items.reduce((n,i)=>n + (i.quantity_kg * i.price_per_kg),0);
-  const delFee = items.length ? calcDeliveryFee(cartDeliveryEl.value) : 0;
-  cartSubtotalEl.textContent = '₱'+subtotal.toFixed(2);
-  cartDelFeeEl.textContent   = '₱'+delFee.toFixed(2);
-  cartGrandEl.textContent    = '₱'+(subtotal+delFee).toFixed(2);
+function updateCartTotals(items = []) {
+  let subtotal = 0;
+  let discount = 0;
+  items.forEach(item => {
+    const line = computeBulkAmounts(Number(item.quantity_kg) || 0, Number(item.price_per_kg) || 0);
+    subtotal += line.subtotal;
+    discount += line.discount;
+  });
+  const deliveryFee = items.length ? calcDeliveryFee(cartDeliveryEl.value) : 0;
+  cartSubtotalEl.textContent = '₱' + subtotal.toFixed(2);
+  cartDiscountRow.classList.toggle('d-none', discount <= 0);
+  if (discount > 0) cartDiscountTotalEl.textContent = discount.toFixed(2);
+  cartDelFeeEl.textContent = '₱' + deliveryFee.toFixed(2);
+  cartGrandEl.textContent = '₱' + (subtotal - discount + deliveryFee).toFixed(2);
 }
+cartDeliveryEl?.addEventListener('change', () => updateCartTotals(currentCartItems));
 async function loadCart(){
   if (!CURRENT_USER_ID) { await hydrateUser(); }
   if (!CURRENT_USER_ID) {
@@ -738,18 +926,20 @@ async function loadCart(){
     const r = await fetch(base+'/backend/api/cart/get.php?user_id='+CURRENT_USER_ID, { cache:'no-store' });
     const j = await r.json();
     if(!j.success) throw new Error(j.message||'Cart load failed');
-    const items = j.data||[];
-    if(!items.length){
+    const items = j.data || [];
+    currentCartItems = items.map(it => ({ ...it }));
+    if (!items.length) {
       cartList.innerHTML = '<div class="list-group-item text-center text-muted py-4">Cart empty.</div>';
-      updateCartTotals([]);
-      cartCountBubble.textContent='0';
+      updateCartTotals(currentCartItems);
+      cartCountBubble.textContent = '0';
       return;
     }
-    cartList.innerHTML='';
-    items.forEach(it=>{
-      const li=document.createElement('div');
-      li.className='list-group-item d-flex align-items-start gap-2';
-      li.innerHTML=`
+    cartList.innerHTML = '';
+    items.forEach(it => {
+      const line = computeBulkAmounts(Number(it.quantity_kg) || 0, Number(it.price_per_kg) || 0);
+      const li = document.createElement('div');
+      li.className = 'list-group-item d-flex align-items-start gap-2';
+      li.innerHTML = `
         <div class="flex-grow-1">
           <div class="d-flex justify-content-between">
             <strong>${escapeHtml(it.name)}</strong>
@@ -759,13 +949,18 @@ async function loadCart(){
           <div class="d-flex align-items-center gap-2">
             <input type="number" min="0.01" step="0.01" class="form-control form-control-sm w-50"
                    data-qty="${it.cart_item_id}" value="${Number(it.quantity_kg).toFixed(2)}">
-            <span class="small">Item Total: ₱<span data-itemtotal="${it.cart_item_id}">${(it.quantity_kg*it.price_per_kg).toFixed(2)}</span></span>
+            <div>
+              <div class="small">Item Total: ₱<span data-itemtotal="${it.cart_item_id}">${line.total.toFixed(2)}</span></div>
+              <div class="small text-success ${line.rate>0?'':'d-none'}" data-discountnote="${it.cart_item_id}">
+                ${line.rate>0?`-${Math.round(line.rate*100)}% bulk discount`:''}
+              </div>
+            </div>
           </div>
         </div>`;
       cartList.appendChild(li);
     });
-    bindCartEvents(items);
-    updateCartTotals(items);
+    bindCartEvents(currentCartItems);
+    updateCartTotals(currentCartItems);
     cartCountBubble.textContent = items.length;
   }catch(e){
     cartList.innerHTML='<div class="list-group-item text-danger">'+escapeHtml(e.message)+'</div>';
@@ -788,7 +983,13 @@ function bindCartEvents(items){
         const item = items.find(i=>i.cart_item_id==id);
         if(item){
           item.quantity_kg=newQty;
-          cartList.querySelector(`[data-itemtotal="${id}"]`).textContent=(newQty*item.price_per_kg).toFixed(2);
+          const line = computeBulkAmounts(newQty, item.price_per_kg);
+          cartList.querySelector(`[data-itemtotal="${id}"]`).textContent = line.total.toFixed(2);
+          const note = cartList.querySelector(`[data-discountnote="${id}"]`);
+          if (note) {
+            note.classList.toggle('d-none', line.rate <= 0);
+            note.textContent = line.rate > 0 ? `-${Math.round(line.rate*100)}% bulk discount` : '';
+          }
           updateCartTotals(items);
         }
         showToast('Cart updated','success');
@@ -812,18 +1013,7 @@ function bindCartEvents(items){
     });
   });
 }
-cartDeliveryEl?.addEventListener('change', async ()=>{
-  if(cartList && cartList.children.length) {
-    // Just recompute fee without reload
-    const items=[];
-    cartList.querySelectorAll('input[data-qty]').forEach(i=>{
-      const id=Number(i.dataset.qty);
-      const price=parseFloat(i.closest('.list-group-item').querySelector('[data-itemtotal="'+id+'"]').textContent)/(parseFloat(i.value)||1);
-      items.push({quantity_kg:parseFloat(i.value)||0, price_per_kg:price});
-    });
-    updateCartTotals(items);
-  }
-});
+cartDeliveryEl?.addEventListener('change', () => updateCartTotals(currentCartItems));
 
 // Add To Cart Modal logic
 const addCartModalEl = document.getElementById('addCartModal');
@@ -837,13 +1027,20 @@ function openAddCart(prod){
   document.getElementById('cartPrice').value       = Number(prod.price).toFixed(2);
   document.getElementById('cartAvailable').value   = Number(prod.available).toFixed(2);
   document.getElementById('cartQty').value         = '';
-  document.getElementById('cartItemTotal').textContent='0.00';
+  cartItemSubtotalEl.textContent = '0.00';
+  cartPayableTotalEl.textContent = '0.00';
+  cartDiscountAmountEl.textContent = '0.00';
+  cartDiscountRowModal.classList.add('d-none');
   addCartModal.show();
 }
-document.getElementById('cartQty').addEventListener('input',()=>{
-  const q = parseFloat(document.getElementById('cartQty').value||0);
-  const price = parseFloat(document.getElementById('cartPrice').value||0);
-  document.getElementById('cartItemTotal').textContent = (q>0?(q*price):0).toFixed(2);
+document.getElementById('cartQty').addEventListener('input', () => {
+  const qty = parseFloat(document.getElementById('cartQty').value || 0);
+  const price = parseFloat(document.getElementById('cartPrice').value || 0);
+  const { subtotal, discount, total, rate } = computeBulkAmounts(qty, price);
+  cartItemSubtotalEl.textContent = subtotal.toFixed(2);
+  cartPayableTotalEl.textContent = total.toFixed(2);
+  cartDiscountRowModal.classList.toggle('d-none', !(rate > 0 && qty > 0));
+  if (rate > 0 && qty > 0) cartDiscountAmountEl.textContent = discount.toFixed(2);
 });
 
 addCartForm.addEventListener('submit', async e=>{
@@ -886,9 +1083,7 @@ function getCartOffcanvas(){
 }
 
 // Floating cart button now redirects to cart page
-document.getElementById('cartFab').addEventListener('click', () => {
-  window.location.href = `${base}/pages/cart.php`;
-});
+
 
 // When checking out, hide cart using lazy init
 cartCheckoutBtn?.addEventListener('click', async ()=>{
@@ -941,6 +1136,219 @@ hydrateUser().then(()=>{
   updateCartCount();
   loadProducts();
 });
+
+// ...helper functions section...
+function loadCompareSelection() {
+  try {
+    const raw = localStorage.getItem(COMPARE_KEY);
+    const list = raw ? JSON.parse(raw) : [];
+    return Array.isArray(list) ? list.slice(0, COMPARE_MAX).map(Number) : [];
+  } catch { return []; }
+}
+function saveCompareSelection() {
+  localStorage.setItem(COMPARE_KEY, JSON.stringify(compareSelection));
+}
+function loadPriceAlerts() {
+  try {
+    const raw = localStorage.getItem(PRICE_ALERT_KEY);
+    const obj = raw ? JSON.parse(raw) : {};
+    return obj && typeof obj === 'object' ? obj : {};
+  } catch { return {}; }
+}
+function savePriceAlerts() {
+  localStorage.setItem(PRICE_ALERT_KEY, JSON.stringify(priceAlerts));
+}
+function getRecentProducts() {
+  try {
+    const raw = localStorage.getItem(RECENT_KEY);
+    const list = raw ? JSON.parse(raw) : [];
+    return Array.isArray(list) ? list : [];
+  } catch { return []; }
+}
+function saveRecentProducts(list) {
+  localStorage.setItem(RECENT_KEY, JSON.stringify(list.slice(0, MAX_RECENT)));
+}
+function markProductViewed(product) {
+  const list = getRecentProducts().filter(item => item.id !== product.product_id);
+  list.unshift({
+    id: product.product_id,
+    name: product.name,
+    price: Number(product.price_per_kg),
+    image: getProductImageUrl(product)
+  });
+  saveRecentProducts(list);
+  renderRecentProducts();
+}
+function renderRecentProducts() {
+  const wrap = document.getElementById('recentlyViewedWrap');
+  const section = document.getElementById('recentlyViewedSection');
+  if (!wrap || !section) return;
+  const list = getRecentProducts();
+  if (!list.length) {
+    wrap.innerHTML = '<div class="text-muted small py-3">No recently viewed products yet.</div>';
+    section.classList.add('d-none');
+    return;
+  }
+  section.classList.remove('d-none');
+  wrap.innerHTML = list.map(item => `
+    <div class="recent-card" data-recent-id="${item.id}">
+      <img src="${escapeHtml(item.image || PRODUCT_PLACEHOLDER)}" alt="${escapeHtml(item.name)}">
+      <div class="recent-body">
+        <div class="small fw-semibold text-truncate">${escapeHtml(item.name)}</div>
+        <div class="recent-price">₱${Number(item.price).toFixed(2)}/kg</div>
+      </div>
+    </div>
+  `).join('');
+  wrap.querySelectorAll('[data-recent-id]').forEach(card => {
+    card.addEventListener('click', () => {
+      const pid = Number(card.dataset.recentId);
+      const cardEl = document.querySelector(`[data-product-card="${pid}"]`);
+      if (cardEl) {
+        cardEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        cardEl.classList.add('ring-highlight');
+        setTimeout(() => cardEl.classList.remove('ring-highlight'), 1200);
+      }
+    });
+  });
+}
+document.getElementById('recentlyViewedClear')?.addEventListener('click', () => {
+  saveRecentProducts([]);
+  renderRecentProducts();
+});
+
+function getBulkDiscountRate(qty) {
+  let rate = 0;
+  for (const rule of BULK_DISCOUNTS) {
+    if (qty >= rule.threshold && rule.rate > rate) rate = rule.rate;
+  }
+  return rate;
+}
+function computeBulkAmounts(qty, price) {
+  const subtotal = qty * price;
+  const rate = getBulkDiscountRate(qty);
+  const discount = subtotal * rate;
+  return { subtotal, rate, discount, total: subtotal - discount };
+}
+function bulkInfoBadge() {
+  const primary = BULK_DISCOUNTS.slice().sort((a, b) => b.threshold - a.threshold)[0];
+  return `<span class="badge bulk-info-badge">Bulk ${Math.round(primary.rate * 100)}% ≥${primary.threshold}kg</span>`;
+}
+function buildPriceAlertBadge(product) {
+  const target = priceAlerts[product.product_id];
+  if (!target) return '';
+  const price = Number(product.price_per_kg);
+  return price <= target
+    ? '<span class="badge price-alert-badge price-alert-hit">Price alert hit</span>'
+    : `<span class="badge price-alert-badge">Alert @ ₱${Number(target).toFixed(2)}</span>`;
+}
+
+if (priceAlertForm && priceAlertModal) {
+  let priceAlertProductId = null;
+
+  function openPriceAlert(product) {
+    priceAlertProductId = product.product_id;
+    document.getElementById('priceAlertProductId').value = product.product_id;
+    document.getElementById('priceAlertName').textContent = product.name;
+    document.getElementById('priceAlertCurrent').textContent = Number(product.price_per_kg).toFixed(2);
+    document.getElementById('priceAlertTarget').value = priceAlerts[product.product_id] ?? '';
+    priceAlertModal.show();
+  }
+  window.openPriceAlert = openPriceAlert;
+
+  priceAlertForm.addEventListener('submit', e => {
+    e.preventDefault();
+    if (!priceAlertProductId) return;
+    const target = parseFloat(document.getElementById('priceAlertTarget').value || '0');
+    if (!target || target <= 0) { showToast('Enter a valid target price.','danger'); return; }
+    priceAlerts[priceAlertProductId] = target;
+    savePriceAlerts();
+    priceAlertModal.hide();
+    showToast('Price alert saved.','success');
+    const list = applyFilters(productsData);
+    renderProducts(list);
+    loadRatingsForList(list);
+  });
+
+  priceAlertRemoveBtn?.addEventListener('click', () => {
+    if (!priceAlertProductId) return;
+    delete priceAlerts[priceAlertProductId];
+    savePriceAlerts();
+    document.getElementById('priceAlertTarget').value = '';
+    priceAlertModal.hide();
+    showToast('Price alert removed.','info');
+    const list = applyFilters(productsData);
+    renderProducts(list);
+    loadRatingsForList(list);
+  });
+}
+
+// Compare functions
+function toggleCompare(product) {
+  const id = Number(product.product_id);
+  const index = compareSelection.indexOf(id);
+  if (index >= 0) compareSelection.splice(index, 1);
+  else {
+    if (compareSelection.length >= COMPARE_MAX) { showToast('Compare limit reached (3 items).','danger'); return; }
+    compareSelection.push(id);
+  }
+  saveCompareSelection();
+  renderComparePanel();
+  highlightCompareButtons();
+}
+function renderComparePanel() {
+  const panel = document.getElementById('comparePanel');
+  const body = document.getElementById('compareBody');
+  const notice = document.getElementById('compareNotice');
+  if (!panel || !body || !notice) return;
+  if (!compareSelection.length) {
+    body.innerHTML = '';
+    notice.classList.remove('d-none');
+    panel.classList.add('compare-empty');
+    return;
+  }
+  notice.classList.add('d-none');
+  panel.classList.remove('compare-empty');
+  const rows = compareSelection
+    .map(id => productsData.find(p => Number(p.product_id) === Number(id)))
+    .filter(Boolean);
+  body.innerHTML = rows.map(p => `
+    <div class="compare-card">
+      <img src="${escapeHtml(getProductImageUrl(p) || PRODUCT_PLACEHOLDER)}" alt="${escapeHtml(p.name)}">
+      <div class="flex-grow-1 small">
+        <div class="d-flex justify-content-between">
+          <strong>${escapeHtml(p.name)}</strong>
+          <button type="button" class="btn btn-link btn-sm text-danger p-0" data-remove-compare="${p.product_id}">Remove</button>
+        </div>
+        <div>Price: ₱${Number(p.price_per_kg).toFixed(2)}/kg</div>
+        <div>Available: ${Number(p.available_qty).toFixed(2)} kg</div>
+        <div>Quality: ${escapeHtml((p.quality || p.harvest_quality || p.product_quality || 'N/A').toString())}</div>
+      </div>
+    </div>
+  `).join('');
+  body.querySelectorAll('[data-remove-compare]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const id = Number(btn.dataset.removeCompare);
+      compareSelection = compareSelection.filter(item => item !== id);
+      saveCompareSelection();
+      renderComparePanel();
+      highlightCompareButtons();
+    });
+  });
+}
+document.getElementById('compareClearBtn')?.addEventListener('click', () => {
+  compareSelection = [];
+  saveCompareSelection();
+  renderComparePanel();
+  highlightCompareButtons();
+});
+function highlightCompareButtons() {
+  document.querySelectorAll('[data-compare-id]').forEach(btn => {
+    const id = Number(btn.dataset.compareId);
+    const active = compareSelection.includes(id);
+    btn.classList.toggle('btn-success', active);
+    btn.classList.toggle('btn-outline-secondary', !active);
+  });
+}
 </script>
 <!-- Cart Offcanvas -->
 <div class="offcanvas offcanvas-end" tabindex="-1" id="cartPanel">
@@ -953,6 +1361,9 @@ hydrateUser().then(()=>{
     <div class="mt-auto p-3 border-top">
       <div class="d-flex justify-content-between mb-2">
         <span>Subtotal:</span><strong id="cartSubtotal">₱0.00</strong>
+      </div>
+      <div class="d-flex justify-content-between mb-2 text-success d-none" id="cartDiscountRow">
+        <span>Bulk Discount:</span><strong>-₱<span id="cartDiscountTotal">0.00</span></strong>
       </div>
       <div class="mb-2">
         <label class="form-label mb-1">Delivery Option</label>
@@ -981,6 +1392,16 @@ hydrateUser().then(()=>{
       </button>
     </div>
   </div>
+</div>
+
+<!-- Comparison panel near end of body -->
+<div id="comparePanel" class="compare-panel shadow-sm compare-empty">
+  <div class="compare-panel-header d-flex justify-content-between align-items-center mb-2">
+    <span class="fw-semibold"><i class="fas fa-balance-scale me-2"></i>Compare</span>
+    <button type="button" class="btn btn-link btn-sm text-decoration-none" id="compareClearBtn">Clear</button>
+  </div>
+  <div id="compareNotice" class="text-muted small">Select up to three products to compare.</div>
+  <div id="compareBody" class="compare-body mt-2"></div>
 </div>
 </body>
 </html>

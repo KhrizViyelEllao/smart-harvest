@@ -2,7 +2,7 @@
 $host = 'localhost';
 $db   = 'smart_harvest';   
 $user = 'root';
-$pass = '';
+$pass = 'viyelots';
 $port = 3306;
 
 $conn = new mysqli($host, $user, $pass, $db, $port);

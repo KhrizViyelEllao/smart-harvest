@@ -223,6 +223,7 @@ sort($cropOptions);
                   data-crop="<?php echo htmlspecialchars(strtolower($item['crop_name'] ?? 'unknown'), ENT_QUOTES); ?>"
                   data-quality="<?php echo htmlspecialchars(strtolower($item['quality'] ?? ''), ENT_QUOTES); ?>"
                   data-text="<?php echo htmlspecialchars(strtolower(($item['notes'] ?? '') . ' ' . ($item['field_name'] ?? '') . ' ' . ($item['crop_name'] ?? '')), ENT_QUOTES); ?>"
+                  data-ts="<?php echo strtotime($item['created_at'] ?? 'now'); ?>"
                 >
                   <td>
                     <div><?php echo date('M d, Y', strtotime($item['harvest_date'])); ?></div>
@@ -360,6 +361,14 @@ sort($cropOptions);
 
 <script>
 document.addEventListener('DOMContentLoaded', () => {
+  const harvestTableBody = document.querySelector('table.table-hover tbody');
+  const harvestRows = Array.from(harvestTableBody.querySelectorAll('tr[data-harvest]')).sort((a, b) => {
+    return (parseInt(b.dataset.ts || '0', 10) - parseInt(a.dataset.ts || '0', 10));
+  });
+  harvestRows.forEach(row => harvestTableBody.appendChild(row));
+
+  const rows = harvestRows;
+
   const base = window.location.origin + '/Agrilink';
   const modalEl = document.getElementById('actualYieldModal');
   const modal = new bootstrap.Modal(modalEl);
@@ -427,7 +436,6 @@ document.addEventListener('DOMContentLoaded', () => {
   const filterCrop = document.getElementById('filterCrop');
   const filterQuality = document.getElementById('filterQuality');
   const filterKeyword = document.getElementById('filterKeyword');
-  const rows = Array.from(document.querySelectorAll('tbody tr[data-harvest]'));
 
   [filterCrop, filterQuality].forEach(ctrl => ctrl?.addEventListener('change', applyFilters));
   filterKeyword?.addEventListener('input', applyFilters);

@@ -93,7 +93,7 @@
             </li>
             <li class="nav-item" role="presentation">
                 <button class="nav-link" id="manual-tab" data-bs-toggle="tab" data-bs-target="#manual-section" type="button" role="tab">
-                    <i class="fas fa-stethoscope me-1"></i> Manual Diagnosis
+                    <i class="fas fa-stethoscope me-1"></i> Crop Recommendation
                 </button>
             </li>
         </ul>

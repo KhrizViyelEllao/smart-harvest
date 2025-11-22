@@ -2,7 +2,7 @@ Array
 (
     [farmer_ids] => Array
         (
-            [0] => 1
+            [0] => 2
         )
 
     [fields] => Array
@@ -10,21 +10,23 @@ Array
             [0] => 21
         )
 
-    [task] => {"id":"10","name":"Cleaning"}
+    [task] => {"id":"3","name":"Harvest"}
     [details] => Array
         (
-            [cleanTarget] => as
-            [useCleaner] => no
-            [product] => 
-            [supplier] => 
-            [quantity] => 
-            [unit] => L
-            [waterUsage] => 23
-            [specificNotes] => as
-            [instructions] => as
+            [crop_id] => 51
+            [field_id] => 21
+            [harvest_date] => 2025-12-18
+            [predicted_yield_kg] => 9000
+            [actual_yield_kg] => 
+            [quality] => high
+            [notes] => High quality potato
+            [harvest_id] => 62
+            [fieldId] => 21
+            [fieldName] => Rice Field
+            [cropName] => Onion
         )
 
     [notes] => 
-    [end_date] => 2025-11-20
+    [end_date] => 2025-11-22
     [end_time] => 
 )

@@ -16,6 +16,7 @@ let allCrops  = [];
 let map;
 let fieldLayers = {};   // field_id => L.GeoJSON
 let highlightedId = null;
+let currentSort = { field: 'name', order: 'asc' }; // Default sorting
 
 document.addEventListener("DOMContentLoaded", () => {
   initCrops();
@@ -67,6 +68,10 @@ function wireEvents() {
 
   // Click on on-farm cards to delete
   document.getElementById('onFarmCrops')?.addEventListener('click', onOnFarmCardClick);
+
+  // Sort functionality
+  document.getElementById('sortField')?.addEventListener('change', applySorting);
+  document.getElementById('sortOrder')?.addEventListener('change', applySorting);
 }
 
 async function initCrops() {
@@ -99,6 +104,20 @@ async function initCrops() {
   }
 }
 
+function applySorting() {
+  const sortField = document.getElementById('sortField').value;
+  const sortOrder = document.getElementById('sortOrder').value;
+  
+  currentSort = { field: sortField, order: sortOrder };
+  
+  // Re-render both collections with new sorting
+  const onFarm = allCrops.filter(crop => crop.field_crop_id);
+  const notOnFarm = allCrops.filter(crop => !crop.field_crop_id);
+  
+  renderCropCollection(onFarm, "onFarmCrops", true);
+  renderCropCollection(notOnFarm, "notOnFarmCrops", false);
+}
+
 function renderCropCollection(list, containerId, onFarm) {
   const wrap = document.getElementById(containerId);
   if (!wrap) return;
@@ -107,20 +126,34 @@ function renderCropCollection(list, containerId, onFarm) {
     wrap.innerHTML = `<div class="col-12 text-muted small">No crops.</div>`;
     return;
   }
-  list.forEach(crop => {
+  
+  // Apply sorting to the list
+  const sortedList = sortCropList(list);
+  
+  sortedList.forEach(crop => {
     const col = document.createElement("div");
     col.className = "col crop-card";
     col.dataset.id = crop.crop_id;
     col.dataset.name = crop.crop_name || "";
     col.dataset.duration = crop.duration || 0;
+    col.dataset.description = crop.description || "";
+    col.dataset.category = crop.category || "";
+    col.dataset.created_at = crop.created_at || "";
     if (onFarm) col.setAttribute('title','Click to delete');
 
     const imgUrl = `${BASE_URL}/backend/api/crops/image.php?id=${crop.crop_id}`;
 
     col.innerHTML = `
-      <div class="card shadow-sm h-100">
-        <img src="${imgUrl}" class="card-img-top fixed-crop-img" alt="${escapeHtml(crop.crop_name)}"
-             onerror="this.onerror=null;this.src=CROP_PLACEHOLDER;">
+      <div class="card shadow-sm h-100 position-relative">
+        <div class="image-container">
+          <img src="${imgUrl}" class="card-img-top fixed-crop-img" alt="${escapeHtml(crop.crop_name)}"
+               onerror="this.onerror=null;this.src=CROP_PLACEHOLDER;">
+          <div class="hover-overlay">
+            <div class="eye-icon">
+              <i class="fas fa-eye"></i>
+            </div>
+          </div>
+        </div>
         <div class="card-body text-center">
           <h6>${escapeHtml(crop.crop_name)}</h6>
           <div class="mt-2 d-flex justify-content-center gap-2">
@@ -136,6 +169,110 @@ function renderCropCollection(list, containerId, onFarm) {
         </div>
       </div>`;
     wrap.appendChild(col);
+  });
+  
+  // Add hover event listeners for the eye icon
+  addHoverEffects();
+}
+
+function sortCropList(list) {
+  return list.sort((a, b) => {
+    let aValue, bValue;
+    
+    switch(currentSort.field) {
+      case 'name':
+        aValue = (a.crop_name || '').toLowerCase();
+        bValue = (b.crop_name || '').toLowerCase();
+        break;
+      case 'category':
+        aValue = (a.category || '').toLowerCase();
+        bValue = (b.category || '').toLowerCase();
+        break;
+      case 'duration':
+        aValue = parseInt(a.duration) || 0;
+        bValue = parseInt(b.duration) || 0;
+        break;
+      default:
+        aValue = (a.crop_name || '').toLowerCase();
+        bValue = (b.crop_name || '').toLowerCase();
+    }
+    
+    if (aValue < bValue) return currentSort.order === 'asc' ? -1 : 1;
+    if (aValue > bValue) return currentSort.order === 'asc' ? 1 : -1;
+    return 0;
+  });
+}
+
+function addHoverEffects() {
+  const cards = document.querySelectorAll('.crop-card');
+  
+  cards.forEach(card => {
+    const imageContainer = card.querySelector('.image-container');
+    const overlay = card.querySelector('.hover-overlay');
+    
+    if (!imageContainer || !overlay) return;
+    
+    // Show overlay on hover
+    imageContainer.addEventListener('mouseenter', () => {
+      overlay.style.opacity = '1';
+    });
+    
+    // Hide overlay when mouse leaves
+    imageContainer.addEventListener('mouseleave', () => {
+      overlay.style.opacity = '0';
+    });
+    
+    // Click on eye icon to show product details
+    const eyeIcon = overlay.querySelector('.eye-icon');
+    if (eyeIcon) {
+      eyeIcon.addEventListener('click', (e) => {
+        e.stopPropagation();
+        showProductDetails(card);
+      });
+    }
+  });
+}
+
+function showProductDetails(card) {
+  const cropId = card.dataset.id;
+  const cropName = card.dataset.name;
+  const description = card.dataset.description;
+  const category = card.dataset.category;
+  const duration = card.dataset.duration;
+  
+  // Create modal content
+  const modalContent = `
+    <div class="row">
+      <div class="col-md-5">
+        <img src="${BASE_URL}/backend/api/crops/image.php?id=${cropId}" 
+             class="img-fluid rounded" 
+             alt="${escapeHtml(cropName)}"
+             onerror="this.onerror=null;this.src=CROP_PLACEHOLDER;">
+      </div>
+      <div class="col-md-7">
+        <h4 class="text-success mb-3">${escapeHtml(cropName)}</h4>
+        ${category ? `<p class="mb-2"><strong>Category:</strong> <span class="badge bg-info">${escapeHtml(category)}</span></p>` : ''}
+        ${duration ? `<p class="mb-2"><strong>Duration:</strong> ${duration} days</p>` : ''}
+        <div class="mt-3">
+          <strong>Description:</strong>
+          <div class="mt-2 p-3 bg-light rounded">
+            ${description ? escapeHtml(description) : '<p class="text-muted mb-0">No description available.</p>'}
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+  
+  // Use SweetAlert2 for the modal
+  Swal.fire({
+    title: 'Product Details',
+    html: modalContent,
+    width: '700px',
+    showCloseButton: true,
+    showConfirmButton: false,
+    customClass: {
+      popup: 'product-details-modal'
+    }
   });
 }
 
@@ -356,19 +493,32 @@ function addCropToOnFarmList(cropId){
   col.dataset.name = crop.crop_name || "";
   col.dataset.id = crop.crop_id;
   col.dataset.duration = crop.duration || 0;
+  col.dataset.description = crop.description || "";
+  col.dataset.category = crop.category || "";
+  col.dataset.created_at = crop.created_at || "";
 
   const imgUrl = `${BASE_URL}/backend/api/crops/image.php?id=${crop.crop_id}`;
 
   col.innerHTML = `
-    <div class="card shadow-sm h-100">
-      <img src="${imgUrl}" class="card-img-top fixed-crop-img" alt="${escapeHtml(crop.crop_name)}"
-           onerror="this.onerror=null;this.src=CROP_PLACEHOLDER;">
+    <div class="card shadow-sm h-100 position-relative">
+      <div class="image-container">
+        <img src="${imgUrl}" class="card-img-top fixed-crop-img" alt="${escapeHtml(crop.crop_name)}"
+             onerror="this.onerror=null;this.src=CROP_PLACEHOLDER;">
+        <div class="hover-overlay">
+          <div class="eye-icon">
+            <i class="fas fa-eye"></i>
+          </div>
+        </div>
+      </div>
       <div class="card-body text-center">
         <h6>${escapeHtml(crop.crop_name)}</h6>
         <span class="badge bg-success">Active</span>
       </div>
     </div>`;
   wrap.appendChild(col);
+  
+  // Re-add hover effects for the new card
+  addHoverEffects();
 }
 
 async function submitNewCrop(e) {
@@ -475,10 +625,86 @@ async function loadFields() {
 .compact-cards .badge, .compact-cards .btn { font-size: 0.65rem; padding: 0.2rem 0.4rem; }
 #onFarmCrops .crop-card { cursor: pointer; }
 #onFarmCrops .crop-card .card:hover { box-shadow: 0 0.5rem 1rem rgba(220,53,69,.15); }
+
+/* Hover effect styles */
+.image-container {
+  position: relative;
+  overflow: hidden;
+}
+
+.hover-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  border-top-left-radius: 0.5rem;
+  border-top-right-radius: 0.5rem;
+}
+
+.eye-icon {
+  color: white;
+  font-size: 2rem;
+  cursor: pointer;
+  transition: transform 0.2s ease;
+}
+
+.eye-icon:hover {
+  transform: scale(1.1);
+}
+
+/* Product details modal styling */
+.product-details-modal .swal2-popup {
+  padding: 1.5rem;
+}
+
+.product-details-modal .swal2-close {
+  font-size: 1.5rem;
+}
+
+/* Sorting controls */
+.sorting-controls {
+  background: #f8f9fa;
+  border-radius: 0.5rem;
+  padding: 1rem;
+  margin-bottom: 1rem;
+}
+
+.sorting-controls label {
+  font-weight: 500;
+  margin-bottom: 0.5rem;
+}
 </style>
 
 <div class="container py-4">
   <h2 class="mb-3 text-success"><i class="bi bi-flower2 me-2"></i>Crop Catalogue</h2>
+
+  <!-- Sorting Controls -->
+  <div class="sorting-controls">
+    <div class="row g-3">
+      <div class="col-md-6">
+        <label for="sortField" class="form-label">Sort by:</label>
+        <select id="sortField" class="form-select">
+          <option value="name">Crop Name</option>
+          <option value="category">Category</option>
+          <option value="duration">Duration</option>
+        </select>
+      </div>
+      <div class="col-md-6">
+        <label for="sortOrder" class="form-label">Order:</label>
+        <select id="sortOrder" class="form-select">
+          <option value="asc">Ascending (A-Z)</option>
+          <option value="desc">Descending (Z-A)</option>
+        </select>
+      </div>
+    </div>
+  </div>
 
   <input type="text" id="searchCrop" class="form-control mb-3" placeholder="Search crops...">
 
@@ -489,6 +715,7 @@ async function loadFields() {
   <div id="notOnFarmCrops" class="row compact-cards row-cols-3 row-cols-md-6 g-2"></div>
 </div>
 
+<!-- Rest of the modals remain exactly the same -->
 <!-- Add Crop Modal -->
 <div class="modal fade" id="addCropModal" tabindex="-1">
   <div class="modal-dialog modal-xl">
@@ -555,7 +782,12 @@ async function loadFields() {
 
           <div class="mb-3">
             <label for="category" class="form-label">Category</label>
-            <input type="text" name="category" id="category" class="form-control" placeholder="e.g. Vegetable, Fruit, Grain">
+            <select name="category" id="category" class="form-select" required>
+              <option value="">-- Select Category --</option>
+              <option value="Vegetable">Vegetable</option>
+              <option value="Fruit">Fruit</option>
+              <option value="Grain">Grain</option>
+            </select>
           </div>
 
           <div class="mb-3">
@@ -581,7 +813,6 @@ async function loadFields() {
     </div>
   </div>
 </div>
-
 <!-- Success Modal -->
 <div class="modal fade" id="cropSuccessModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered">

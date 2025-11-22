@@ -34,7 +34,28 @@ $tasksQuery = "
 $tasksResult = $conn->query($tasksQuery);
 $assignedTasks = [];
 if ($tasksResult) {
+  // Custom function to extract crop name from details JSON
+  function extractTaskCropName(array $details): ?string {
+    foreach ($details as $key => $value) {
+      if (is_array($value)) {
+        $inner = extractTaskCropName($value);
+        if ($inner) return $inner;
+        continue;
+      }
+      $cleanKey = strtolower(preg_replace('/[^a-z]/', '', (string)$key));
+      if ($cleanKey === '' || str_contains($cleanKey, 'id') || !str_contains($cleanKey, 'crop')) continue;
+      $text = trim((string)$value);
+      if ($text !== '') return $text;
+    }
+    return null;
+  }
+
   while ($row = $tasksResult->fetch_assoc()) {
+    $detailsData = json_decode($row['details'] ?? '', true);
+    $cropOverride = is_array($detailsData) ? extractTaskCropName($detailsData) : null;
+    if ($cropOverride) {
+      $row['crop_name'] = $cropOverride;
+    }
     $assignedTasks[] = $row;
   }
 }

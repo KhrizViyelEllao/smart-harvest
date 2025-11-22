@@ -38,7 +38,7 @@ elseif ($role === 'admin') $roleIconClass = 'fas fa-shield-halved text-primary';
 
     <div class="logo-section">
       <a href="layout.php?page=<?= htmlspecialchars($_GET['page'] ?? 'dashboard') ?>" class="logo-link">
-        <i class="fas fa-seedling me-2"></i> <span>Smart Harvest</span>
+        <i class="fas fa-seedling me-2"></i> <span>PLantel</span>
       </a>
     </div>
 

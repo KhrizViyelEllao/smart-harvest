@@ -61,6 +61,13 @@ if ($row = $result->fetch_assoc()) {
                 // Convert snake_case or camelCase to Title Case
                 $label = ucwords(str_replace(['_', '-'], ' ', $key));
                 
+                // Normalize the key
+                $normalized = strtolower(str_replace([' ', '_', '-'], '', $key));
+                $skipKeys = ['cropid', 'fieldid', 'harvestid', 'fieldtaskid', 'taskid', 'assignedfarmerid'];
+                if (in_array($normalized, $skipKeys, true) || str_ends_with($normalized, 'id')) {
+                    continue;
+                }
+                
                 // Format values nicely
                 if (is_array($value)) {
                     $value = implode(', ', $value);
@@ -80,6 +87,15 @@ if ($row = $result->fetch_assoc()) {
         $row['details_formatted'] = 'No additional details';
     }
     
+    // Extract crop name from details
+    $detailsAssoc = json_decode($row['details'] ?? '', true);
+    if (is_array($detailsAssoc)) {
+        $cropOverride = extractTaskCropName($detailsAssoc);
+        if ($cropOverride) {
+            $row['crop_name'] = $cropOverride;
+        }
+    }
+
     echo json_encode($row);
 } else {
     echo json_encode(['error' => 'Task not found']);
@@ -87,4 +103,18 @@ if ($row = $result->fetch_assoc()) {
 
 $stmt->close();
 $conn->close();
-?>
+
+function extractTaskCropName(array $details): ?string {
+  foreach ($details as $key => $value) {
+    if (is_array($value)) {
+      $inner = extractTaskCropName($value);
+      if ($inner) return $inner;
+      continue;
+    }
+    $cleanKey = strtolower(preg_replace('/[^a-z]/', '', (string)$key));
+    if ($cleanKey === '' || str_contains($cleanKey, 'id') || !str_contains($cleanKey, 'crop')) continue;
+    $text = trim((string)$value);
+    if ($text !== '') return $text;
+  }
+  return null;
+}
